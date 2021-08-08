@@ -3,7 +3,7 @@ name: Static Analysis
 on: [push]
 
 jobs:
-  do_satic_analysis:
+  do_static_analysis:
 
     runs-on: ubuntu-latest
     strategy:
@@ -19,6 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install mypy flake8
+        mypy --install-types
     - name: Type checking
       run: |
         python3 -m mypy program_graphs/
