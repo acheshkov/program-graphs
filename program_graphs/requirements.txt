@@ -1,4 +1,0 @@
-networkx
-tree_sitter
-tabulate
-types-tabulate

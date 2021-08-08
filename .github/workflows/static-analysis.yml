@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip3 install mypy flake8
-        mypy --install-types
+        if [ -f requirements/default.txt ]; then pip install -r requirements/default.txt; fi
     - name: Type checking
       run: |
         python3 -m mypy program_graphs/
