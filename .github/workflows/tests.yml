@@ -27,6 +27,6 @@ jobs:
         git submodule update --recursive --init
         if [ -f program_graphs/requirements.txt ]; then pip install -r program_graphs/requirements.txt; fi
         # pip3 install ./
-    - name: Test with pytest
+    - name: Test with unittest
       run: |
         python3 -m unittest discover
