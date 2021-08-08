@@ -22,7 +22,8 @@ java_code = '''
 
 cfg = parse_java(java_code)
 print(cfg)
-
+```
+```
 From              To
 ------------  --  ---------
 if-condition  ->  statement
