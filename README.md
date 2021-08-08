@@ -1,6 +1,11 @@
 # program-graphs
 
-A Multi-language python library to build Control Flow Graphs (`CFG`) from source-code.
+A python library to build graphs for programs written in different programming languages. 
+
+ - Control Flow Graph
+ - Control Dependency Graph
+ - Data Dependency Graph
+ - Program Dependency Graph
 
 
 # Simple Example
@@ -18,13 +23,15 @@ java_code = '''
 cfg = parse_java(java_code)
 print(cfg)
 
-('if-condition'        -> 'statement')
-('statement'           -> 'exit')
-('condition-body'      -> 'exit')
+From              To
+------------  --  ---------
+if-condition  ->  statement
+statement     ->  exit
+if-condition  ->  exit
 ```
 
 
-# Limitation
+# Limitations
 
  - For now, only a Java language is supported
  - It's not possible to build `CFG` for a project or class. Only method level is supported

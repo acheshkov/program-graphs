@@ -1,5 +1,5 @@
 from program_graphs.cfg import CFG
-from tree_sitter import Language, Parser
+from tree_sitter import Language, Parser  # type: ignore
 
 
 def parse_java(source_code: str) -> CFG:
