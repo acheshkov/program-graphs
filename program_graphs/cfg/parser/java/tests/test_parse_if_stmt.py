@@ -2,10 +2,10 @@
 from unittest import TestCase, main
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg.parser.java.parser import mk_cfg_if, mk_cfg_if_else
-import networkx as nx  #type: ignore
+import networkx as nx  # type: ignore
 
 
-class TestParstIF(TestCase):
+class TestParseIF(TestCase):
 
     def get_parser(self) -> Parser:
         Language.build_library(
@@ -29,12 +29,12 @@ class TestParstIF(TestCase):
         if_node = parser.parse(bts).root_node.children[0]
         assert if_node.type == 'if_statement'
         cfg = mk_cfg_if(if_node)
-        assert nx.algorithms.is_isomorphic(
+        self.assertTrue(nx.algorithms.is_isomorphic(
             cfg,
             nx.DiGraph([
                 ('condition', 'true'), ('condition', 'exit'), ('true', 'exit')
             ])
-        )
+        ))
 
     def test_cfg_if_else(self) -> None:
         parser = self.get_parser()
@@ -48,12 +48,12 @@ class TestParstIF(TestCase):
         if_node = parser.parse(bts).root_node.children[0]
         assert if_node.type == 'if_statement'
         cfg = mk_cfg_if_else(if_node)
-        assert nx.algorithms.is_isomorphic(
+        self.assertTrue(nx.algorithms.is_isomorphic(
             cfg,
             nx.DiGraph([
                 ('condition', 'true'), ("condition", 'false'), ('true', 'exit'), ('false', 'exit')
             ])
-        )
+        ))
 
 
 if __name__ == '__main__':

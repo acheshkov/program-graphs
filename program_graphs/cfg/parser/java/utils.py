@@ -6,6 +6,11 @@ def extract_code(start_byte: int, end_byte: int, code: bytes) -> str:
     return code[start_byte: end_byte].decode()
 
 
+def get_nodes_after_colon(node: Node) -> List[Node]:
+    colon_pos = [pos for pos, node in enumerate(node.children) if node.type == ':'][0]
+    return node.children[colon_pos + 1:]  # type: ignore
+
+
 def get_identifier(node: Node, **kwargs: Any) -> Optional[Label]:
     mb_source: Optional[bytes] = kwargs.get('source')
     if mb_source is None:

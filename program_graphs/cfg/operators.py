@@ -1,5 +1,5 @@
 from typing import Tuple, List
-from program_graphs.cfg.types import JumpKind, Node
+from program_graphs.cfg.types import JumpKind
 from program_graphs.cfg.cfg import CFG, merge_cfg
 from program_graphs.cfg.edge_contraction import edge_contraction
 
@@ -50,7 +50,7 @@ def reduce_redundant_exit_nodes(cfg: CFG) -> CFG:
     return cfg_new
 
 
-def rewire_return_nodes(cfg: CFG) -> Node:
+def rewire_return_nodes(cfg: CFG) -> None:
     exit_node = cfg.exit_node()
     for return_node in cfg.return_nodes:
         cfg.remove_edges_from([(return_node, s) for s in cfg.successors(return_node)])
@@ -69,7 +69,6 @@ def manage_jumps(cfg: CFG) -> CFG:
         if len(jump_nodes) == 0:
             continue
         for jn in jump_nodes:
-            print("match found", node, label, kind, jn)
             cfg.remove_edges_from([(jn, s) for s in cfg.successors(jn)])
             cfg.add_edge(jn, node)
             if kind == JumpKind.CONTINUE:

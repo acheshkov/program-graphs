@@ -50,6 +50,9 @@ def move_special_nodes(cfg: CFG, nodes_from: List[NodeID], target_node: NodeID) 
                 continue
             cfg.add_possible_jump(target_node, label, kind)
 
+        if node in cfg.return_nodes:
+            cfg.add_return_node(target_node)
+
 
 def edge_contraction(cfg: CFG, edges: List[Edge]) -> CFG:
     cfg, map_old_2_new = cfg.copy()

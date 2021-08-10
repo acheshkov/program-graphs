@@ -1,0 +1,105 @@
+
+from unittest import TestCase, main
+from tree_sitter import Language, Parser  # type: ignore
+from program_graphs.cfg.parser.java.parser import mk_cfg_for
+import networkx as nx  # type: ignore
+
+
+class TestParseFOR(TestCase):
+
+    def get_parser(self) -> Parser:
+        Language.build_library(
+            'build/my-languages.so',
+            [
+                './tree-sitter-java'
+            ]
+        )
+        JAVA_LANGUAGE = Language('build/my-languages.so', 'java')
+        parser = Parser()
+        parser.set_language(JAVA_LANGUAGE)
+        return parser
+
+    def test_cfg_for(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                a = 9;
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        cfg = mk_cfg_for(for_node)
+        assert nx.algorithms.is_isomorphic(cfg, nx.DiGraph([(10, 11), (11, 12), (12, 13), (13, 11), (11, 14)]))
+
+    def test_cfg_for_with_break(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                break;
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        cfg = mk_cfg_for(for_node)
+        assert nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ('init', 'condition'),
+                ('condition', 'break'),
+                ('break', 'exit'),
+                ('condition', 'exit'),
+                ('update', 'condition')
+            ])
+        )
+
+    def test_cfg_nested_for_with_break(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < 10; i++) {
+                    break;
+                }
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        cfg = mk_cfg_for(for_node)
+        assert nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ('init_1', 'condition_1'),
+                ('condition_1', 'exit'),
+                ('update_1', 'condition_1'),
+                ('condition_1', 'init_2'),
+                ('init_2', 'condition_2'),
+                ('condition_2', 'update_1'),
+                ('condition_2', 'break'),
+                ('update_2', 'condition_2'),
+                ('break', 'update_1'),
+            ])
+        )
+
+    def test_cfg_for_with_continue(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                continue;
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        cfg = mk_cfg_for(for_node)
+        assert nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ("init", "condition"),
+                ("condition", "body"),
+                ("body", "update"),
+                ("update", "condition"),
+                ("condition", "exit")
+            ])
+        )
+
+
+if __name__ == '__main__':
+    main()

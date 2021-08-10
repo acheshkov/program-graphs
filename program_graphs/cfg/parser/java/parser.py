@@ -1,8 +1,11 @@
 from typing import Any, List
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg import CFG
-from program_graphs.cfg.operators import mk_empty_cfg, combine, merge_cfgs, reduce_redundant_exit_nodes
-from program_graphs.cfg.types import Node
+from program_graphs.cfg.operators import mk_empty_cfg, combine, merge_cfgs
+from program_graphs.cfg.operators import reduce_redundant_exit_nodes, manage_jumps
+from program_graphs.cfg.parser.java.utils import get_identifier, get_nodes_after_colon
+from program_graphs.cfg.parser.java.switch_stmt import get_switch_block_label, get_switch_label
+from program_graphs.cfg.types import Node, JumpKind, Label
 from program_graphs.cfg.parser.java.break_stmt import mk_cfg_break
 from program_graphs.cfg.parser.java.continue_stmt import mk_cfg_continue
 from program_graphs.cfg.parser.java.return_stmt import mk_cfg_return
@@ -75,8 +78,34 @@ def mk_cfg_block(node: Node, **kwargs: Any) -> CFG:
     return mk_cfg_of_list_of_nodes(node.children, **kwargs)
 
 
-def mk_cfg_for(node: Node, **kwargs: Any) -> CFG:
-    pass
+def mk_cfg_for(node: Node, label: Label = None, source: bytes = None) -> CFG:
+    init = mk_cfg(node.child_by_field_name('init'))
+    condition = mk_cfg(node.child_by_field_name('condition'))
+    body = mk_cfg(node.child_by_field_name('body'), source=source)
+    update = mk_cfg(node.child_by_field_name('update'))
+    exit = mk_empty_cfg()
+
+    cfg, m1, m2, m3, m4, m5 = merge_cfgs(init, condition, body, update, exit)
+    cfg.add_edges_from([
+        (m1[init.exit_node()], m2[condition.entry_node()]),
+        (m2[condition.exit_node()], m3[body.entry_node()]),
+        (m3[body.exit_node()], m4[update.entry_node()]),
+        (m4[update.exit_node()], m2[condition.entry_node()]),
+        (m2[condition.exit_node()], m5[exit.entry_node()])
+    ])
+
+    cfg.add_possible_jump(m4[update.entry_node()], None, JumpKind.CONTINUE)
+    cfg.add_possible_jump(m5[exit.entry_node()], None, JumpKind.BREAK)
+    if label is not None:
+        cfg.add_possible_jump(m4[update.entry_node()], label, JumpKind.CONTINUE)
+    cfg.set_node_name(m4[update.entry_node()], 'for-update')
+    cfg.set_node_name(m2[condition.entry_node()], 'for-condition')
+    cfg.set_node_name(m1[init.exit_node()], 'for-init')
+    cfg.set_node_name(m5[exit.entry_node()], 'exit')
+
+    cfg = reduce_redundant_exit_nodes(cfg)
+    cfg = manage_jumps(cfg)
+    return cfg
 
 
 def mk_cfg_if(node: Node, **kwargs: Any) -> CFG:
@@ -121,9 +150,61 @@ def mk_cfg_if_else(node: Node, **kwargs: Any) -> CFG:
     return cfg
 
 
+def get_cfg_switch_block_group_body(node: Node, **kwargs: Any) -> CFG:
+    nodes_after_colon = get_nodes_after_colon(node)
+    return mk_cfg_of_list_of_nodes(nodes_after_colon, **kwargs)
+
+
+def mk_cfg_switch_case_group(node: Node, **kwargs: Any) -> CFG:
+    assert node.type == 'switch_block_statement_group'
+    condition = CFG([get_switch_label(node)])
+    body = get_cfg_switch_block_group_body(node, **kwargs)
+    exit = mk_empty_cfg()
+
+    cfg, m1, m2, m3 = merge_cfgs(condition, body, exit)
+    cfg.add_edges_from([
+        (m1[condition.exit_node()], m2[body.entry_node()]),
+        (m1[condition.exit_node()], m3[exit.entry_node()]),
+        (m2[body.exit_node()], m3[exit.entry_node()]),
+    ])
+    cfg = reduce_redundant_exit_nodes(cfg)
+    return cfg
+
+
+def mk_cfg_switch_default_group(node: Node, **kwargs: Any) -> CFG:
+    assert node.type == 'switch_block_statement_group'
+    body = get_cfg_switch_block_group_body(node, **kwargs)
+    exit = mk_empty_cfg()
+    cfg, m1, m2 = merge_cfgs(body, exit)
+    cfg.add_edges_from([
+        (m1[body.exit_node()], m2[exit.entry_node()]),
+    ])
+    cfg = reduce_redundant_exit_nodes(cfg)
+    return cfg
+
+
 def mk_cfg_switch(node: Node, **kwargs: Any) -> CFG:
-    pass
+    groups = [n for n in node.child_by_field_name('body').children if n.type == 'switch_block_statement_group']
+    default_groups = [g for g in groups if get_switch_block_label(g) == 'default']
+    case_groups = [g for g in groups if get_switch_block_label(g) == 'case']
+    case_groups_cfg = combine_list([mk_cfg_switch_case_group(g, **kwargs) for g in case_groups])
+    default_group_cfg = combine_list([mk_cfg_switch_default_group(g, **kwargs) for g in default_groups])
+
+    cfg = combine(case_groups_cfg, default_group_cfg)
+    cfg.add_possible_jump(cfg.exit_node(), None, JumpKind.BREAK)
+    manage_jumps(cfg)
+    return cfg
 
 
 def mk_cfg_labeled_statement(node: Node, **kwargs: Any) -> CFG:
-    pass
+    assert node.type == 'labeled_statement'
+    assert kwargs['source'] is not None
+    cfg = CFG()
+
+    identifier = get_identifier(node, **kwargs)
+    nodes_after_colon = get_nodes_after_colon(node)
+    cfg = mk_cfg(nodes_after_colon[0], label=identifier, **kwargs)
+    cfg.add_possible_jump(cfg.exit_node(), identifier, JumpKind.BREAK)
+
+    manage_jumps(cfg)
+    return cfg
