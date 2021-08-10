@@ -10,6 +10,19 @@ A python library to build graphs for programs written in different programming l
 
 # Simple Example
 
+From console:
+
+```$ echo "if (x > 0) { y = 0; }" |  python3 -m program_graphs
+
+From              To
+------------  --  ---------
+if-condition  ->  statement
+statement     ->  exit
+if-condition  ->  exit
+```
+
+From python:
+
 ```python
 
 from program_graphs.cfg import CFG, parse_java
