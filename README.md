@@ -51,5 +51,6 @@ $ pip install -r requirements/default.txt
 
 # Limitations
 
- - For now, only a Java language is supported
- - It's not possible to build `CFG` for a project or class. Only method level is supported
+ - For now, only a Java language is supported;
+ - For now, only `CFG` is supported;
+ - It's not possible to build graphs for a project or class. Only method level is supported
