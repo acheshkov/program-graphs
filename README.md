@@ -31,7 +31,7 @@ java_code = '''
 cfg = parse_java(java_code)
 print(cfg)
 ```
-Expected output is a list of grpah edges:
+Expected output is a list of graph edges:
 ```
 From              To
 ------------  --  ---------
