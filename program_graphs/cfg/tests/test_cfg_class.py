@@ -45,6 +45,13 @@ class TestCFGClass(TestCase):
         cfg.remove_return_node(list(cfg.nodes())[0])
         self.assertEqual(len(cfg.return_nodes), 0)
 
+    def test_assign_and_find_id_to_node(self):
+        cfg = CFG()
+        node_1 = cfg.add_node([1])
+        cfg.add_node([2])
+        id = cfg.assign_id(node_1)
+        self.assertEqual(cfg.find_node_by_id(id), node_1)
+
     def test_find_break_by_label(self):
         cfg = CFG()
         node_1, node_2 = cfg.add_node([1]), cfg.add_node([2])

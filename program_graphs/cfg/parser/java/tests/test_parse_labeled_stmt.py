@@ -42,28 +42,23 @@ class TestParseLabeled(TestCase):
         node = parser.parse(bts).root_node.children[0]
         assert node.type == 'labeled_statement'
         cfg = mk_cfg_labeled_statement(node, source=bts)
-        assert len(cfg.continue_nodes) == 1
-        assert len(cfg.possible_jumps) == 1
-        assert nx.algorithms.is_isomorphic(
-            cfg,
-            nx.DiGraph([
-                ("continue", "exit")
-            ])
-        )
+        self.assertEqual(len(cfg.continue_nodes), 1)
+        self.assertEqual(len(cfg.possible_jumps), 1)
+        self.assertEqual(len(cfg.nodes()), 2)
 
     def test_cfg_nested_for_with_break_to_label(self) -> None:
         parser = self.get_parser()
         bts = b"""
             goto:{
                 for (int i = 0; i < 10; i++) {
-                    for (int i = 0; i < 10; i++) {
+                    for (int j = 0; j < 10; j++) {
                         break goto;
                     }
             }
         """
         node = parser.parse(bts).root_node
         cfg = mk_cfg(node, source=bts)
-        assert nx.algorithms.is_isomorphic(
+        self.assertTrue(nx.algorithms.is_isomorphic(
             cfg,
             nx.DiGraph([
                 ('init_1', 'condition_1'),
@@ -73,17 +68,17 @@ class TestParseLabeled(TestCase):
                 ('init_2', 'condition_2'),
                 ('condition_2', 'update_1'),
                 ('condition_2', 'break'),
-                ('update_2', 'condition_2'),
                 ('break', 'exit'),
+                ('update_2', 'condition_2')
             ])
-        )
+        ))
 
     def test_cfg_nested_for_with_continue_to_label(self) -> None:
         parser = self.get_parser()
         bts = b"""
             goto:{
                 for (int i = 0; i < 10; i++) {
-                    for (int i = 0; i < 10; i++) {
+                    for (int j = 0; j < 10; i++) {
                         continue goto;
                     }
                 }
@@ -91,7 +86,7 @@ class TestParseLabeled(TestCase):
         """
         node = parser.parse(bts).root_node
         cfg = mk_cfg(node, source=bts)
-        assert nx.algorithms.is_isomorphic(
+        self.assertTrue(nx.algorithms.is_isomorphic(
             cfg,
             nx.DiGraph([
                 ('init_1', 'condition_1'),
@@ -104,7 +99,7 @@ class TestParseLabeled(TestCase):
                 ('update_2', 'condition_2'),
                 ('continue', 'update_1'),
             ])
-        )
+        ))
 
 
 if __name__ == '__main__':

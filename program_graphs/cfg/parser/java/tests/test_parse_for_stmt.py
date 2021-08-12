@@ -29,7 +29,14 @@ class TestParseFOR(TestCase):
         for_node = parser.parse(bts).root_node.children[0]
         assert for_node.type == 'for_statement'
         cfg = mk_cfg_for(for_node)
-        assert nx.algorithms.is_isomorphic(cfg, nx.DiGraph([(10, 11), (11, 12), (12, 13), (13, 11), (11, 14)]))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            cfg, nx.DiGraph([
+                ('init', 'condition'),
+                ('condition', 'exit'),
+                ('condition', 'body'),
+                ('body', 'condition')
+            ])
+        ))
 
     def test_cfg_for_with_break(self) -> None:
         parser = self.get_parser()
@@ -41,7 +48,7 @@ class TestParseFOR(TestCase):
         for_node = parser.parse(bts).root_node.children[0]
         assert for_node.type == 'for_statement'
         cfg = mk_cfg_for(for_node)
-        assert nx.algorithms.is_isomorphic(
+        self.assertTrue(nx.algorithms.is_isomorphic(
             cfg,
             nx.DiGraph([
                 ('init', 'condition'),
@@ -50,7 +57,28 @@ class TestParseFOR(TestCase):
                 ('condition', 'exit'),
                 ('update', 'condition')
             ])
-        )
+        ))
+
+    def test_cfg_for_with_continue(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                continue;
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        cfg = mk_cfg_for(for_node)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ("init", "condition"),
+                ("condition", "continue"),
+                ("continue", "condition"),
+                # ("update", "condition"),
+                ("condition", "exit")
+            ])
+        ))
 
     def test_cfg_nested_for_with_break(self) -> None:
         parser = self.get_parser()
@@ -72,31 +100,10 @@ class TestParseFOR(TestCase):
                 ('update_1', 'condition_1'),
                 ('condition_1', 'init_2'),
                 ('init_2', 'condition_2'),
-                ('condition_2', 'update_1'),
                 ('condition_2', 'break'),
-                ('update_2', 'condition_2'),
+                ('condition_2', 'update_1'),
                 ('break', 'update_1'),
-            ])
-        )
-
-    def test_cfg_for_with_continue(self) -> None:
-        parser = self.get_parser()
-        bts = b"""
-            for (int i = 0; i < 10; i++) {
-                continue;
-            }
-        """
-        for_node = parser.parse(bts).root_node.children[0]
-        assert for_node.type == 'for_statement'
-        cfg = mk_cfg_for(for_node)
-        assert nx.algorithms.is_isomorphic(
-            cfg,
-            nx.DiGraph([
-                ("init", "condition"),
-                ("condition", "body"),
-                ("body", "update"),
-                ("update", "condition"),
-                ("condition", "exit")
+                ('update_2', 'condition_2'),
             ])
         )
 

@@ -1,6 +1,7 @@
-from typing import Dict, List, Tuple, Mapping, Set, Optional
+from typing import Dict, List, Tuple, Mapping, Set, Optional, Any
 from tree_sitter import Node  # type: ignore
 from tabulate import tabulate
+import uuid
 import networkx as nx  # type: ignore
 
 from program_graphs.cfg.types import JumpKind
@@ -25,9 +26,9 @@ class CFG(nx.DiGraph):
     def copy(self) -> Tuple['CFG', Mapping[NodeID, NodeID]]:
         return copy_cfg(self)
 
-    def add_node(self, block: BasicBlock, name: str = None) -> NodeID:
+    def add_node(self, block: BasicBlock, name: str = None, id: str = None) -> NodeID:
         self.node_id_2_block.append(block)
-        super().add_node(len(self.node_id_2_block) - 1, name=name)
+        super().add_node(len(self.node_id_2_block) - 1, name=name, id=id)
         return len(self.node_id_2_block) - 1
 
     def remove_node(self, node: NodeID) -> None:
@@ -49,12 +50,12 @@ class CFG(nx.DiGraph):
 
     def entry_nodes(self) -> List[Tuple[NodeID, Label]]:
         return list(
-            [(node, nx.get_node_attributes(self, 'name')[node]) for node, in_degre in self.in_degree() if in_degre == 0]
+            [(node, nx.get_node_attributes(self, 'name').get(node)) for node, in_degre in self.in_degree() if in_degre == 0]
         )
 
     def exit_nodes(self) -> List[Tuple[NodeID, Label]]:
         return list(
-            [(node, nx.get_node_attributes(self, 'name')[node]) for node, out_degre in self.out_degree() if out_degre == 0]
+            [(node, nx.get_node_attributes(self, 'name').get(node)) for node, out_degre in self.out_degree() if out_degre == 0]
         )
 
     @property
@@ -114,20 +115,46 @@ class CFG(nx.DiGraph):
     def get_block(self, nid: NodeID) -> BasicBlock:
         return self.node_id_2_block[nid]
 
-    def set_node_name(self, node: NodeID, name: str) -> None:
+    def set_node_name(self, node: NodeID, name: Optional[str]) -> None:
         nx.set_node_attributes(self, {node: {'name': name}})
 
-    def get_node_name(self, node: NodeID) -> str:
+    def get_node_name(self, node: NodeID) -> Optional[str]:
         names: Dict[NodeID, str] = nx.get_node_attributes(self, 'name')
-        if names[node] is None:
-            return f'node:{node}'
+        # if names[node] is None:
+        #     return f'node:{node}'
         return names[node]
 
+    def get_printable_name(self, node: NodeID) -> str:
+        name = self.get_node_name(node)
+        if name is None:
+            return f'node:{node}'
+        return f'{name}:{node}'
+
+    def assign_id(self, node: NodeID) -> str:
+        id = str(uuid.uuid4())
+        nx.set_node_attributes(self, {node: {'id': id}})
+        return id
+
+    def find_nodes_by_attribute_name(self, name: str, value: Any) -> List[NodeID]:
+        node_attributes: Dict[NodeID, Any] = nx.get_node_attributes(self, name)
+        return [node for node, _value in node_attributes.items() if _value == value]
+
+    def find_node_by_id(self, id: str) -> NodeID:
+        [node] = self.find_nodes_by_attribute_name('id', id)
+        return node
+
+    def find_node_by_name(self, name: str) -> Optional[NodeID]:
+        nodes = self.find_nodes_by_attribute_name('name', name)
+        if len(nodes) == 0:
+            return None
+        return nodes[0]
+
     def __str__(self) -> str:
-        names = nx.get_node_attributes(self, 'name')
-        edges = nx.algorithms.traversal.edgedfs.edge_dfs(self, source=self.entry_node())
+        edges = list(nx.algorithms.traversal.edgedfs.edge_dfs(self, source=self.entry_node()))
+        not_reachable_edges = set(list(self.edges())) - set(edges)
+        edges.extend(not_reachable_edges)
         edge_names = [
-            (names.get(node_from, f'node:{node_from}'), names.get(node_to, f'node:{node_to}')) for node_from, node_to in edges
+            (self.get_printable_name(node_from), self.get_printable_name(node_to)) for node_from, node_to in edges
         ]
         table = [(c1, '->', c2) for c1, c2 in edge_names]
         headers = ['From', '', 'To']
@@ -144,8 +171,10 @@ def copy_cfg(cfg: CFG) -> Tuple[CFG, Mapping[NodeID, NodeID]]:
 
 def merge_cfg(cfg: CFG, _cfg: CFG) -> Mapping[NodeID, NodeID]:
     map_old_2_new = dict()
-    for node_id, name in _cfg.nodes(data='name'):
-        node_id_new = cfg.add_node(_cfg.node_id_2_block[node_id], name)
+    for node_id, data_dict in _cfg.nodes(data=True):
+        name = data_dict.get("name")
+        id = data_dict.get("id")
+        node_id_new = cfg.add_node(_cfg.node_id_2_block[node_id], name=name, id=id)
         map_old_2_new[node_id] = node_id_new
 
     for (node_from, node_to) in _cfg.edges():

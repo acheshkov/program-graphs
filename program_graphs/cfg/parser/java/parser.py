@@ -1,8 +1,8 @@
 from typing import Any, List
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg import CFG
-from program_graphs.cfg.operators import mk_empty_cfg, combine, merge_cfgs
-from program_graphs.cfg.operators import reduce_redundant_exit_nodes, manage_jumps
+from program_graphs.cfg.operators import mk_empty_cfg, combine
+from program_graphs.cfg.operators import manage_jumps, eliminate_redundant_nodes
 from program_graphs.cfg.parser.java.utils import get_identifier, get_nodes_after_colon
 from program_graphs.cfg.parser.java.switch_stmt import get_switch_block_label, get_switch_label
 from program_graphs.cfg.types import Node, JumpKind, Label
@@ -24,8 +24,9 @@ def parse(source_code: str) -> CFG:
     JAVA_LANGUAGE = Language('build/my-languages.so', 'java')
     parser = Parser()
     parser.set_language(JAVA_LANGUAGE)
-    ast = parser.parse(bytes(source_code, 'utf-8'))
-    return mk_cfg(ast.root_node)
+    source_code_bytes = bytes(source_code, 'utf-8')
+    ast = parser.parse(source_code_bytes)
+    return mk_cfg(ast.root_node, source=source_code_bytes)
 
 
 def mk_cfg(node: Node, **kwargs: Any) -> CFG:
@@ -75,7 +76,9 @@ def combine_list(cfgs: List[CFG]) -> CFG:
 
 
 def mk_cfg_block(node: Node, **kwargs: Any) -> CFG:
-    return mk_cfg_of_list_of_nodes(node.children, **kwargs)
+    cfg = mk_cfg_of_list_of_nodes(node.children, **kwargs)
+    manage_jumps(cfg)
+    return eliminate_redundant_nodes(cfg)
 
 
 def mk_cfg_for(node: Node, label: Label = None, source: bytes = None) -> CFG:
@@ -85,26 +88,27 @@ def mk_cfg_for(node: Node, label: Label = None, source: bytes = None) -> CFG:
     update = mk_cfg(node.child_by_field_name('update'))
     exit = mk_empty_cfg()
 
-    cfg, m1, m2, m3, m4, m5 = merge_cfgs(init, condition, body, update, exit)
-    cfg.add_edges_from([
-        (m1[init.exit_node()], m2[condition.entry_node()]),
-        (m2[condition.exit_node()], m3[body.entry_node()]),
-        (m3[body.exit_node()], m4[update.entry_node()]),
-        (m4[update.exit_node()], m2[condition.entry_node()]),
-        (m2[condition.exit_node()], m5[exit.entry_node()])
-    ])
+    condition_id = condition.assign_id(condition.entry_node())
+    update_id = update.assign_id(update.entry_node())
+    exit_id = exit.assign_id(exit.entry_node())
+    cfg = combine(init, condition)
+    cfg = combine(cfg, body)
+    cfg = combine(cfg, update)
+    cfg = combine(cfg, exit, cfg.find_node_by_id(condition_id))
+    cfg.add_edge(cfg.find_node_by_id(update_id), cfg.find_node_by_id(condition_id))
 
-    cfg.add_possible_jump(m4[update.entry_node()], None, JumpKind.CONTINUE)
-    cfg.add_possible_jump(m5[exit.entry_node()], None, JumpKind.BREAK)
+    cfg.add_possible_jump(cfg.find_node_by_id(update_id), None, JumpKind.CONTINUE)
+    cfg.add_possible_jump(cfg.find_node_by_id(exit_id), None, JumpKind.BREAK)
     if label is not None:
-        cfg.add_possible_jump(m4[update.entry_node()], label, JumpKind.CONTINUE)
-    cfg.set_node_name(m4[update.entry_node()], 'for-update')
-    cfg.set_node_name(m2[condition.entry_node()], 'for-condition')
-    cfg.set_node_name(m1[init.exit_node()], 'for-init')
-    cfg.set_node_name(m5[exit.entry_node()], 'exit')
+        cfg.add_possible_jump(cfg.find_node_by_id(update_id), label, JumpKind.CONTINUE)
 
-    cfg = reduce_redundant_exit_nodes(cfg)
-    cfg = manage_jumps(cfg)
+    cfg.set_node_name(cfg.find_node_by_id(update_id), 'for-update')
+    cfg.set_node_name(cfg.find_node_by_id(condition_id), 'for-condition')
+    cfg.set_node_name(cfg.entry_node(), 'for-init')
+    cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+
+    manage_jumps(cfg)
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -117,16 +121,14 @@ def mk_cfg_if(node: Node, **kwargs: Any) -> CFG:
     exit = mk_empty_cfg()
     assert len(consequence.entry_nodes()) == 1
 
-    cfg, m1, m2, m3 = merge_cfgs(condition, consequence, exit)
-    cfg.add_edges_from([
-        (m1[condition.exit_node()], m2[consequence.entry_node()]),
-        (m1[condition.exit_node()], m3[exit.entry_node()]),
-        (m2[consequence.exit_node()], m3[exit.entry_node()]),
-    ])
-
-    cfg.set_node_name(m1[condition.entry_node()], 'if-condition')
-    cfg.set_node_name(m3[exit.entry_node()], 'exit')
-    cfg = reduce_redundant_exit_nodes(cfg)
+    condition_id = condition.assign_id(condition.exit_node())
+    exit_id = exit.assign_id(exit.entry_node())
+    cfg = combine(condition, consequence)
+    cfg = combine(cfg, exit)
+    cfg.add_edge(cfg.find_node_by_id(condition_id), cfg.find_node_by_id(exit_id))
+    cfg.set_node_name(cfg.entry_node(), 'if-condition')
+    cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -137,16 +139,17 @@ def mk_cfg_if_else(node: Node, **kwargs: Any) -> CFG:
     exit = mk_empty_cfg()
     assert len(consequence.entry_nodes()) == 1
 
-    cfg, m1, m2, m3, m4 = merge_cfgs(condition, consequence, alternative, exit)
-    cfg.add_edges_from([
-        (m1[condition.exit_node()], m2[consequence.entry_node()]),
-        (m1[condition.exit_node()], m3[alternative.entry_node()]),
-        (m2[consequence.exit_node()], m4[exit.entry_node()]),
-        (m3[alternative.exit_node()], m4[exit.entry_node()])
-    ])
-    cfg.set_node_name(m1[condition.entry_node()], 'if-condition')
-    cfg.set_node_name(m4[exit.entry_node()], 'exit')
-    cfg = reduce_redundant_exit_nodes(cfg)
+    condition_id = condition.assign_id(condition.exit_node())
+    alternative_id = alternative.assign_id(alternative.exit_node())
+    exit_id = exit.assign_id(exit.entry_node())
+    cfg = combine(condition, consequence)
+    cfg = combine(cfg, exit)
+    cfg = combine(cfg, alternative, cfg.find_node_by_id(condition_id))
+    cfg.add_edge(cfg.find_node_by_id(alternative_id), cfg.find_node_by_id(exit_id))
+
+    cfg.set_node_name(cfg.entry_node(), 'if-condition')
+    cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -161,13 +164,14 @@ def mk_cfg_switch_case_group(node: Node, **kwargs: Any) -> CFG:
     body = get_cfg_switch_block_group_body(node, **kwargs)
     exit = mk_empty_cfg()
 
-    cfg, m1, m2, m3 = merge_cfgs(condition, body, exit)
-    cfg.add_edges_from([
-        (m1[condition.exit_node()], m2[body.entry_node()]),
-        (m1[condition.exit_node()], m3[exit.entry_node()]),
-        (m2[body.exit_node()], m3[exit.entry_node()]),
-    ])
-    cfg = reduce_redundant_exit_nodes(cfg)
+    condition_id = condition.assign_id(condition.exit_node())
+    exit_id = exit.assign_id(exit.entry_node())
+    cfg = combine(condition, body)
+    cfg = combine(cfg, exit)
+    cfg.add_edge(cfg.find_node_by_id(condition_id), cfg.find_node_by_id(exit_id))
+    cfg.set_node_name(cfg.entry_node(), 'case')
+    cfg.set_node_name(cfg.exit_node(), 'exit')
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -175,11 +179,10 @@ def mk_cfg_switch_default_group(node: Node, **kwargs: Any) -> CFG:
     assert node.type == 'switch_block_statement_group'
     body = get_cfg_switch_block_group_body(node, **kwargs)
     exit = mk_empty_cfg()
-    cfg, m1, m2 = merge_cfgs(body, exit)
-    cfg.add_edges_from([
-        (m1[body.exit_node()], m2[exit.entry_node()]),
-    ])
-    cfg = reduce_redundant_exit_nodes(cfg)
+    cfg = combine(body, exit)
+    cfg.set_node_name(cfg.entry_node(), 'default')
+    cfg.set_node_name(cfg.exit_node(), 'exit')
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -191,8 +194,10 @@ def mk_cfg_switch(node: Node, **kwargs: Any) -> CFG:
     default_group_cfg = combine_list([mk_cfg_switch_default_group(g, **kwargs) for g in default_groups])
 
     cfg = combine(case_groups_cfg, default_group_cfg)
+    cfg = combine(cfg, mk_empty_cfg())
     cfg.add_possible_jump(cfg.exit_node(), None, JumpKind.BREAK)
     manage_jumps(cfg)
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
 
@@ -205,6 +210,6 @@ def mk_cfg_labeled_statement(node: Node, **kwargs: Any) -> CFG:
     nodes_after_colon = get_nodes_after_colon(node)
     cfg = mk_cfg(nodes_after_colon[0], label=identifier, **kwargs)
     cfg.add_possible_jump(cfg.exit_node(), identifier, JumpKind.BREAK)
-
     manage_jumps(cfg)
+    cfg = eliminate_redundant_nodes(cfg)
     return cfg

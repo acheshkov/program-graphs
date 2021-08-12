@@ -6,8 +6,8 @@ from program_graphs.cfg.types import Node
 
 def mk_cfg_break(node: Node, **kwargs: Dict[str, Any]) -> CFG:
     cfg = CFG()
-    stmt = cfg.add_node([node])
-    exit = cfg.add_node([])
+    stmt = cfg.add_node([node], 'break')
+    exit = cfg.add_node([], 'exit')
     cfg.add_edge(stmt, exit)
     maybe_label = get_identifier(node, **kwargs)
     cfg.add_break_node(stmt, maybe_label)

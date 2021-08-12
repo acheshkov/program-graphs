@@ -31,13 +31,15 @@ java_code = '''
 cfg = parse_java(java_code)
 print(cfg)
 ```
-Expected output:
+Expected output is a list of grpah edges:
 ```
 From              To
 ------------  --  ---------
-if-condition  ->  statement
-statement     ->  exit
-if-condition  ->  exit
+if-condition:0  ->  statement:1
+statement:1     ->  exit:2
+if-condition:0  ->  exit:2
+
+where 
 ```
 
 # How to install

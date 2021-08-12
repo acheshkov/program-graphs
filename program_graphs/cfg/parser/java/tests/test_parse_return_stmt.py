@@ -5,7 +5,7 @@ from program_graphs.cfg.parser.java.parser import mk_cfg_return, mk_cfg
 import networkx as nx  # type: ignore
 
 
-class TestParseBreak(TestCase):
+class TestParseReturn(TestCase):
 
     def get_parser(self) -> Parser:
         Language.build_library(

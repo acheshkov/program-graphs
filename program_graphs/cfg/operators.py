@@ -1,7 +1,7 @@
-from typing import Tuple, List
-from program_graphs.cfg.types import JumpKind
+from typing import Optional, Tuple, List
+from program_graphs.cfg.types import Edge, JumpKind, NodeID
 from program_graphs.cfg.cfg import CFG, merge_cfg
-from program_graphs.cfg.edge_contraction import edge_contraction
+from program_graphs.cfg.edge_contraction import edge_contraction_all
 
 
 def mk_empty_cfg() -> CFG:
@@ -23,15 +23,68 @@ def combine_list(cfgs: List[CFG]) -> CFG:
     return cfg
 
 
-def combine(cfg_1: CFG, cfg_2: CFG) -> CFG:
+def combine(cfg_1: CFG, cfg_2: CFG, on_left: Optional[NodeID] = None, on_right: Optional[NodeID] = None) -> CFG:
     cfg, map_old_2_new_left = cfg_1.copy()
     map_old_2_new_right = merge_cfg(cfg, cfg_2)
-    cfg = edge_contraction(cfg, [
-        (map_old_2_new_left[cfg_1.exit_node()], map_old_2_new_right[cfg_2.entry_node()])
-    ])
-    rewire_return_nodes(cfg)
-    cfg = manage_jumps(cfg)
-    cfg = reduce_redundant_exit_nodes(cfg)
+    if on_left is None:
+        on_left = cfg_1.exit_node()
+    if on_right is None:
+        on_right = cfg_2.entry_node()
+    cfg.add_edge(map_old_2_new_left[on_left], map_old_2_new_right[on_right])
+    return cfg
+
+
+def find_redundant_exit_nodes(cfg: CFG) -> List[NodeID]:
+    nodes_to_remove = []
+    for node in cfg.nodes():
+        if not can_empty_node_be_removed(cfg, node):
+            continue
+        nodes_to_remove.append(node)
+    return nodes_to_remove
+
+
+def can_empty_node_be_removed(cfg: CFG, node: NodeID) -> bool:
+    if len(cfg.get_block(node)) != 0:
+        return False
+    out_deg = len(list(cfg.successors(node)))
+    in_deg = len(list(cfg.predecessors(node)))
+    if out_deg == 0:
+        return False
+    if out_deg * in_deg > max(out_deg, in_deg):
+        return False
+    return True
+
+
+def remove_empty_node(cfg: CFG, node: NodeID) -> None:
+    new_edges: List[Edge] = []
+    for p in cfg.predecessors(node):
+        for s in cfg.successors(node):
+            new_edges.append((p, s))
+    cfg.add_edges_from(new_edges)
+
+    node_name = cfg.get_node_name(node)
+    for _node in list(cfg.predecessors(node)) + list(cfg.successors(node)):
+        if cfg.get_node_name(_node) is not None:
+            continue
+        cfg.set_node_name(_node, node_name)
+    cfg.remove_node(node)
+
+
+def remove_empty_nodes(cfg: CFG, nodes: List[NodeID]) -> CFG:
+    for node in nodes:
+        if not can_empty_node_be_removed(cfg, node):
+            continue
+        remove_empty_node(cfg, node)
+    cfg, _ = cfg.copy()
+    return cfg
+
+
+def eliminate_redundant_nodes(cfg: CFG) -> CFG:
+    cfg, _ = cfg.copy()
+    exit_nodes = find_redundant_exit_nodes(cfg)
+    cfg = remove_empty_nodes(cfg, exit_nodes)
+
+    cfg = edge_contraction_all(cfg)
     return cfg
 
 
@@ -57,7 +110,7 @@ def rewire_return_nodes(cfg: CFG) -> None:
         cfg.add_edge(return_node, exit_node)
 
 
-def manage_jumps(cfg: CFG) -> CFG:
+def manage_jumps(cfg: CFG) -> None:
     for (node, label, kind) in cfg.possible_jumps:
         jump_nodes = []
         if kind == JumpKind.CONTINUE:
@@ -70,12 +123,13 @@ def manage_jumps(cfg: CFG) -> CFG:
             continue
         for jn in jump_nodes:
             cfg.remove_edges_from([(jn, s) for s in cfg.successors(jn)])
+
             cfg.add_edge(jn, node)
             if kind == JumpKind.CONTINUE:
                 cfg.remove_continue_node(jn)
             if kind == JumpKind.BREAK:
                 cfg.remove_break_node(jn)
 
-        cfg.remove_possible_jump(node)
+            cfg.remove_possible_jump(node)
 
-    return cfg
+    rewire_return_nodes(cfg)
