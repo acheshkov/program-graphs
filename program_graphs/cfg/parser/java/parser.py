@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg import CFG
 from program_graphs.cfg.operators import mk_empty_cfg, combine
@@ -29,7 +29,11 @@ def parse(source_code: str) -> CFG:
     return mk_cfg(ast.root_node, source=source_code_bytes)
 
 
-def mk_cfg(node: Node, **kwargs: Any) -> CFG:
+# flake8: noqa: C901
+def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
+    if node is None:
+        return mk_empty_cfg()
+
     if node.type == 'for_statement':
         return mk_cfg_for(node, **kwargs)
 

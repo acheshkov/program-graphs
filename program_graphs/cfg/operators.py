@@ -43,6 +43,15 @@ def find_redundant_exit_nodes(cfg: CFG) -> List[NodeID]:
     return nodes_to_remove
 
 
+def can_entry_node_be_removed(cfg: CFG, node: NodeID) -> bool:
+    assert cfg.entry_node() == node
+    for s in cfg.successors(node):
+        in_deg = len(list(cfg.predecessors(s))) - 1
+        if in_deg > 0:
+            return False
+    return True
+
+
 def can_empty_node_be_removed(cfg: CFG, node: NodeID) -> bool:
     if len(cfg.get_block(node)) != 0:
         return False
@@ -52,6 +61,10 @@ def can_empty_node_be_removed(cfg: CFG, node: NodeID) -> bool:
         return False
     if out_deg * in_deg > max(out_deg, in_deg):
         return False
+
+    if cfg.entry_node() == node and not can_entry_node_be_removed(cfg, node):
+        return False
+
     return True
 
 
@@ -83,7 +96,6 @@ def eliminate_redundant_nodes(cfg: CFG) -> CFG:
     cfg, _ = cfg.copy()
     exit_nodes = find_redundant_exit_nodes(cfg)
     cfg = remove_empty_nodes(cfg, exit_nodes)
-
     cfg = edge_contraction_all(cfg)
     return cfg
 
