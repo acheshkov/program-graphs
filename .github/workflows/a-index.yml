@@ -20,6 +20,6 @@ jobs:
       - uses: docker-practice/actions-setup-docker@master
 
       # Runs a set of commands using the runners shell
-      - name: Calculat A-Index
+      - name: Calculate A-Index
         run: |
           docker run -v ${{ github.workspace }}:/${{ github.workspace }}  alexbers/anomaly python3 prototype.py /${{ github.workspace }}
