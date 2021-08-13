@@ -111,6 +111,16 @@ class TestCFGOperators(TestCase):
         exit_nodes = find_redundant_exit_nodes(cfg)
         self.assertEqual(exit_nodes, [])
 
+    def test_reduce_redundant_exit_nodes_abstain_to_remove_entry_node(self):
+        cfg = CFG()
+        node_1 = cfg.add_node([])
+        node_2 = cfg.add_node([2])
+        node_3 = cfg.add_node([3])
+        node_4 = cfg.add_node([3])
+        cfg.add_edges_from([(node_1, node_2), (node_2, node_3), (node_3, node_4), (node_4, node_2)])
+        exit_nodes = find_redundant_exit_nodes(cfg)
+        self.assertEqual(exit_nodes, [])
+
     def test_reduce_redundant_exit_nodes_3(self):
         cfg = CFG()
         node_1 = cfg.add_node([1])
