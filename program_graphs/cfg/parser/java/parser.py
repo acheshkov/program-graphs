@@ -37,6 +37,9 @@ def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
     if node.type == 'for_statement':
         return mk_cfg_for(node, **kwargs)
 
+    if node.type == 'while_statement':
+        return mk_cfg_while(node, **kwargs)
+
     if node.type == 'block':
         return mk_cfg_block(node, **kwargs)
 
@@ -93,7 +96,7 @@ def mk_cfg_for(node: Node, label: Label = None, source: bytes = None) -> CFG:
     exit = mk_empty_cfg()
 
     condition_id = condition.assign_id(condition.entry_node())
-    update_id = update.assign_id(update.entry_node())
+    update_id = update.assign_id(update.exit_node())
     exit_id = exit.assign_id(exit.entry_node())
     cfg = combine(init, condition)
     cfg = combine(cfg, body)
@@ -214,6 +217,34 @@ def mk_cfg_labeled_statement(node: Node, **kwargs: Any) -> CFG:
     nodes_after_colon = get_nodes_after_colon(node)
     cfg = mk_cfg(nodes_after_colon[0], label=identifier, **kwargs)
     cfg.add_possible_jump(cfg.exit_node(), identifier, JumpKind.BREAK)
+    manage_jumps(cfg)
+    cfg = eliminate_redundant_nodes(cfg)
+    return cfg
+
+
+def mk_cfg_while(node: Node, label: Label = None, source: bytes = None) -> CFG:
+    start = mk_empty_cfg()
+    condition = mk_cfg(node.child_by_field_name('condition'))
+    body = mk_cfg(node.child_by_field_name('body'), source=source)
+    exit = mk_empty_cfg()
+
+    condition_id = condition.assign_id(condition.entry_node())
+    body_id = body.assign_id(body.exit_node())
+    exit_id = exit.assign_id(exit.entry_node())
+    
+    cfg = combine(start, condition)
+    cfg = combine(cfg, body)
+    cfg = combine(cfg, exit, cfg.find_node_by_id(condition_id))
+    cfg.add_edge(cfg.find_node_by_id(body_id), cfg.find_node_by_id(condition_id))
+
+    cfg.add_possible_jump(cfg.find_node_by_id(condition_id), None, JumpKind.CONTINUE)
+    cfg.add_possible_jump(cfg.find_node_by_id(exit_id), None, JumpKind.BREAK)
+    if label is not None:
+        cfg.add_possible_jump(cfg.find_node_by_id(condition_id), label, JumpKind.CONTINUE)
+
+    cfg.set_node_name(cfg.find_node_by_id(condition_id), 'while-condition')
+    cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+
     manage_jumps(cfg)
     cfg = eliminate_redundant_nodes(cfg)
     return cfg

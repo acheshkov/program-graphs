@@ -101,6 +101,54 @@ class TestParseLabeled(TestCase):
             ])
         ))
 
+    def test_cfg_nested_while_with_break_to_label(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            goto:{
+                while (i < 10) {
+                    while (j < 10) {
+                        break goto;
+                    }
+            }
+        """
+        node = parser.parse(bts).root_node
+        cfg = mk_cfg(node, source=bts)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ('start', 'condition_1'),
+                ('condition_1', 'exit'),
+                ('condition_1', 'condition_2'),
+                ('condition_2', 'condition_1'),
+                ('condition_2', 'break'),
+                ('break', 'exit')
+            ])
+        ))
+
+    def test_cfg_nested_while_with_continue_to_label(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            goto:{
+                while (i < 10) {
+                    while (j < 10) {
+                        continue goto;
+                    }
+            }
+        """
+        node = parser.parse(bts).root_node
+        cfg = mk_cfg(node, source=bts)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            cfg,
+            nx.DiGraph([
+                ('start', 'condition_1'),
+                ('condition_1', 'exit'),
+                ('condition_1', 'condition_2'),
+                ('condition_2', 'condition_1'),
+                ('condition_2', 'continue'),
+                ('continue', 'condition_1')
+            ])
+        ))
+
 
 if __name__ == '__main__':
     main()

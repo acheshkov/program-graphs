@@ -132,7 +132,6 @@ class TestParseFOR(TestCase):
                 ("init", "condition"),
                 ("condition", "continue"),
                 ("continue", "condition"),
-                # ("update", "condition"),
                 ("condition", "exit")
             ])
         ))
