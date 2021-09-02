@@ -15,7 +15,38 @@ class TestCFGEdgeContraction(TestCase):
         self.assertTrue(is_possible_to_contract(cfg, (1, 2)))
         self.assertTrue(is_possible_to_contract(cfg, (2, 3)))
 
-    def test_is_contraction_possible_cycle(self) -> None:
+    def test_is_contraction_possible_simple_cycle(self) -> None:
+        cfg = CFG()
+        cfg.add_edges_from([
+            (1, 2), (2, 3), (3, 4), (3, 2)
+        ])
+        self.assertFalse(is_possible_to_contract(cfg, (1, 2)))
+        self.assertTrue(is_possible_to_contract(cfg, (2, 3)))
+        self.assertFalse(is_possible_to_contract(cfg, (3, 4)))
+        self.assertFalse(is_possible_to_contract(cfg, (3, 2)))
+
+    def test_is_contraction_possible_two_nested_cycles(self) -> None:
+        cfg = CFG()
+        cfg.add_edges_from([
+            (1, 2), (2, 3), (3, 4), (4, 5),
+            (3, 3), (4, 2)
+        ])
+        self.assertFalse(is_possible_to_contract(cfg, (3, 3)))
+        self.assertFalse(is_possible_to_contract(cfg, (4, 2)))
+        self.assertFalse(is_possible_to_contract(cfg, (1, 2)))
+        self.assertFalse(is_possible_to_contract(cfg, (2, 3)))
+        self.assertFalse(is_possible_to_contract(cfg, (3, 4)))
+        self.assertFalse(is_possible_to_contract(cfg, (4, 5)))
+
+    def test_is_contraction_possible_two_nested_cycles_2(self) -> None:
+        cfg = CFG()
+        cfg.add_edges_from([
+            (1, 2), (2, 3), (3, 4), (4, 5),
+            (3, 2), (4, 2)
+        ])
+        self.assertTrue(is_possible_to_contract(cfg, (2, 3)))
+
+    def test_is_contraction_possible_another_cycle(self) -> None:
         cfg = CFG()
         cfg.add_edges_from([
             (1, 2), (2, 3), (3, 4), (4, 2), (2, 5)
@@ -80,6 +111,31 @@ class TestCFGEdgeContraction(TestCase):
         cfg.add_edges_from([(node_1, node_2), (node_2, node_3), (node_3, node_4)])
         cfg = edge_contraction_all(cfg)
         self.assertEqual(len(cfg.nodes()), 1)
+
+    def test_edge_contraction_case_cycle_of_length_one(self) -> None:
+        cfg = CFG()
+        node_1 = cfg.add_node([1])
+        node_2 = cfg.add_node([2])
+        node_3 = cfg.add_node([3])
+        node_4 = cfg.add_node([4])
+        cfg.add_edges_from([(node_1, node_2), (node_2, node_3), (node_3, node_4), (node_3, node_2)])
+        cfg = edge_contraction_all(cfg)
+        self.assertTrue(
+            nx.algorithms.is_isomorphic(cfg, nx.DiGraph([(1, 2), (2, 3), (2, 2)]))
+        )
+    
+    def test_edge_contraction_case_cycle_of_length_two(self) -> None:
+        cfg = CFG()
+        node_1 = cfg.add_node([1])
+        node_2 = cfg.add_node([2])
+        node_3 = cfg.add_node([3])
+        node_4 = cfg.add_node([4])
+        node_5 = cfg.add_node([5])
+        cfg.add_edges_from([(node_1, node_2), (node_2, node_3), (node_3, node_4), (node_4, node_5), (node_4, node_2)])
+        cfg = edge_contraction_all(cfg)
+        self.assertTrue(
+            nx.algorithms.is_isomorphic(cfg, nx.DiGraph([(1, 2), (2, 3), (2, 2)]))
+        )
 
     def test_edge_contraction_case_2(self) -> None:
         cfg = CFG()
