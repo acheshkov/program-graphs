@@ -56,7 +56,6 @@ class TestParseDoWhile(TestCase):
                 ('body_condition_2', 'condition_1'),
                 ('condition_1', 'body_condition_2'),
                 ('condition_1', 'exit')
-                
             ])
         ))
 
