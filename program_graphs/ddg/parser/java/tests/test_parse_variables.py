@@ -105,6 +105,14 @@ class TestParseVariables(TestCase):
         variables = get_variables_read(ast, code)
         self.assertEqual(variables, set(['j', 'k']))
 
+    def test_variables_reads_boolean_expression(self):
+        code = b'''
+            a = b == c;
+        '''
+        ast = self.parse(code)
+        variables = get_variables_read(ast, code)
+        self.assertEqual(variables, set(['b', 'c']))
+
     def test_all_variables(self):
         code = b'''
             int a = 1;
