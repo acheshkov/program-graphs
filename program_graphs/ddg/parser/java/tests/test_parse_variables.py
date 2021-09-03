@@ -113,6 +113,18 @@ class TestParseVariables(TestCase):
         variables = get_variables_read(ast, code)
         self.assertEqual(variables, set(['b', 'c']))
 
+    def test_variables_with_labbda_expression(self):
+        code = b'''
+           final BiFunction<String, Integer, Integer> a = (k, v) -> v == null ? 42 : v + 41;
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set([]))
+        self.assertEqual(write_vars, set(['a']))
+
+
+
     def test_all_variables(self):
         code = b'''
             int a = 1;
