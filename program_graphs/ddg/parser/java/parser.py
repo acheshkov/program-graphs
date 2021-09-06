@@ -1,6 +1,6 @@
 # from typing import Any, List, Optional
 # from tree_sitter import Language, Parser  # type: ignore
-from program_graphs.ddg import DDG
+from program_graphs.ddg.ddg import DDG
 # from program_graphs.cfg.operators import mk_empty_cfg, combine
 # from program_graphs.cfg.operators import manage_jumps, eliminate_redundant_nodes
 # from program_graphs.cfg.parser.java.utils import get_identifier, get_nodes_after_colon

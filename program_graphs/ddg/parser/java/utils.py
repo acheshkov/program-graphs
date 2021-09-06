@@ -2,7 +2,7 @@ from program_graphs.cfg.parser.java.utils import extract_code
 from program_graphs import FCFG
 from typing import Tuple, List, Mapping, Set
 from program_graphs.types import NodeID
-from tree_sitter import Node as Statement
+from tree_sitter import Node as Statement  # type: ignore
 
 
 Variable = str

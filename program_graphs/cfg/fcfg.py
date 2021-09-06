@@ -1,5 +1,5 @@
 # from __future__ import annotations
-import networkx as nx
+import networkx as nx  # type: ignore
 # from typing import TYPE_CHECKING
 # if TYPE_CHECKING:
 from program_graphs.cfg.cfg import CFG
