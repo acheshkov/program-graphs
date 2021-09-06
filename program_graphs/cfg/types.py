@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Tuple
+from typing import List
 from tree_sitter import Node  # type: ignore
 
 
@@ -8,8 +8,6 @@ class JumpKind(Enum):
     BREAK = 2
 
 
-NodeID = int
-Edge = Tuple[NodeID, NodeID]
 BasicBlock = List[Node]
 ForNode = Node
 IfElseNode = Node

@@ -1,6 +1,6 @@
 
 from typing import List, Optional
-from program_graphs.cfg.types import NodeID, Edge
+from program_graphs.types import NodeID, Edge
 from program_graphs.cfg import CFG
 import networkx as nx  # type: ignore
 

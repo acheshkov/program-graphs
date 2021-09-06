@@ -123,7 +123,7 @@ class TestCFGEdgeContraction(TestCase):
         self.assertTrue(
             nx.algorithms.is_isomorphic(cfg, nx.DiGraph([(1, 2), (2, 3), (2, 2)]))
         )
-    
+
     def test_edge_contraction_case_cycle_of_length_two(self) -> None:
         cfg = CFG()
         node_1 = cfg.add_node([1])

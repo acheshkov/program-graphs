@@ -5,7 +5,8 @@ import uuid
 import networkx as nx  # type: ignore
 
 from program_graphs.cfg.types import JumpKind
-from program_graphs.cfg.types import NodeID, Label
+from program_graphs.types import NodeID
+from program_graphs.cfg.types import Label
 
 BasicBlock = List[Node]
 

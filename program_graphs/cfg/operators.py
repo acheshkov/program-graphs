@@ -1,5 +1,6 @@
 from typing import Optional, Tuple, List
-from program_graphs.cfg.types import Edge, JumpKind, NodeID
+from program_graphs.types import Edge, NodeID
+from program_graphs.cfg.types import JumpKind
 from program_graphs.cfg.cfg import CFG, merge_cfg
 from program_graphs.cfg.edge_contraction import edge_contraction_all
 
