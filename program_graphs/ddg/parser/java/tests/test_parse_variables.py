@@ -113,16 +113,113 @@ class TestParseVariables(TestCase):
         variables = get_variables_read(ast, code)
         self.assertEqual(variables, set(['b', 'c']))
 
-    def test_variables_with_labbda_expression(self):
+    
+    def test_variables_with_generic_types(self):
         code = b'''
-           final BiFunction<String, Integer, Integer> a = (k, v) -> v == null ? 42 : v + 41;
+           T<P> a = new T<P>(b, c);
         '''
         ast = self.parse(code)
         read_vars = get_variables_read(ast, code)
         write_vars = get_variables_written(ast, code)
-        self.assertEqual(read_vars, set([]))
+        self.assertEqual(read_vars, set(['b', 'c']))
         self.assertEqual(write_vars, set(['a']))
 
+    def test_variables_anonymous_class(self):
+        code = b'''
+           T a = new T(){
+               int c = 1;
+               public void foo(x, y) {
+                   int d = 1;
+               }
+           }.init(b)
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set(['b']))
+        self.assertEqual(write_vars, set(['a']))
+    
+    def test_variables_with_lambda_expression(self):
+        code = b'''
+           T a = ((k, v) -> v == null ? 1 : v + 1)
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set(['a']))
+    
+    def test_variables_method_invocation(self):
+        code = b'''
+           T a = b.m1(c).m2(d);
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set(['b', 'c', 'd']))
+        self.assertEqual(write_vars, set(['a']))
+    
+    def test_variables_try_with_resources(self):
+        code = b'''
+           try (T1 a = mk1(); T2 b = mk2()) {
+                ;
+            }
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set(['a', 'b']))
+    
+    def test_variables_try_catch(self):
+        code = b'''
+           try {
+                ;
+            } catch (T1 | T2 e) {
+                ;
+            }
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set(['e']))
+
+    def test_variables_labeled_stmts(self):
+        code = b'''
+           l1: while (true) {
+                ;
+            } 
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set())
+    
+    def test_variables_labeled_break(self):
+        code = b'''
+           l1: while (true) {
+                break l1;
+            } 
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set())
+
+    def test_variables_labeled_break(self):
+        code = b'''
+           l1: while (true) {
+                continue l1;
+            } 
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set())
 
 
     def test_all_variables(self):

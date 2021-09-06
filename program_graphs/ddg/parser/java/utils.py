@@ -12,12 +12,15 @@ DataDependency = Tuple[NodeID, NodeID]
 def get_variables_written(node: Statement, source_code: bytes) -> Set[Variable]:
     if node is None:
         return set()
-
+    if node.type == 'lambda_expression':
+        return set()
     if node.type == 'assignment_expression':
         return get_variables_written(node.child_by_field_name('left'), source_code)
+    if node.type == 'resource':
+        return get_variables_written(node.child_by_field_name('name'), source_code)
     if node.type == 'variable_declarator':
         return get_variables_written(node.child_by_field_name('name'), source_code)
-    if node.type == 'identifier':
+    if node.type == 'identifier' and node.parent.type not in ['labeled_statement', 'break_statement', 'continue_statement']:
         return set([extract_code(node.start_byte, node.end_byte, source_code)])
 
     variables = set()
@@ -30,12 +33,19 @@ def get_variables_written(node: Statement, source_code: bytes) -> Set[Variable]:
 def get_variables_read(node: Statement, source_code: bytes) -> Set[Variable]:
     if node is None:
         return set()
-
+    if node.type in ['lambda_expression', 'catch_formal_parameter']:
+        return set()
     if node.type == 'assignment_expression':
         return get_variables_read(node.child_by_field_name('right'), source_code)
+    if node.type == 'class_body' and node.parent.type == 'object_creation_expression':
+        return set()
+    if node.type == 'resource':
+        return get_variables_read(node.child_by_field_name('value'), source_code)
+    if node.type == 'method_invocation':
+        return get_variables_read(node.child_by_field_name('object'), source_code) | get_variables_read(node.child_by_field_name('arguments'), source_code)
     if node.type == 'variable_declarator':
         return get_variables_read(node.child_by_field_name('value'), source_code)
-    if node.type == 'identifier':
+    if node.type == 'identifier' and node.parent.type not in ['labeled_statement', 'break_statement', 'continue_statement']:
         return set([extract_code(node.start_byte, node.end_byte, source_code)])
 
     variables = set()
