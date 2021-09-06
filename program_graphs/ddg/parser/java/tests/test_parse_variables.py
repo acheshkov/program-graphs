@@ -113,7 +113,6 @@ class TestParseVariables(TestCase):
         variables = get_variables_read(ast, code)
         self.assertEqual(variables, set(['b', 'c']))
 
-    
     def test_variables_with_generic_types(self):
         code = b'''
            T<P> a = new T<P>(b, c);
@@ -138,7 +137,7 @@ class TestParseVariables(TestCase):
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set(['b']))
         self.assertEqual(write_vars, set(['a']))
-    
+
     def test_variables_with_lambda_expression(self):
         code = b'''
            T a = ((k, v) -> v == null ? 1 : v + 1)
@@ -148,7 +147,7 @@ class TestParseVariables(TestCase):
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set())
         self.assertEqual(write_vars, set(['a']))
-    
+
     def test_variables_method_invocation(self):
         code = b'''
            T a = b.m1(c).m2(d);
@@ -158,7 +157,7 @@ class TestParseVariables(TestCase):
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set(['b', 'c', 'd']))
         self.assertEqual(write_vars, set(['a']))
-    
+
     def test_variables_try_with_resources(self):
         code = b'''
            try (T1 a = mk1(); T2 b = mk2()) {
@@ -170,7 +169,7 @@ class TestParseVariables(TestCase):
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set())
         self.assertEqual(write_vars, set(['a', 'b']))
-    
+
     def test_variables_try_catch(self):
         code = b'''
            try {
@@ -189,19 +188,19 @@ class TestParseVariables(TestCase):
         code = b'''
            l1: while (true) {
                 ;
-            } 
+            }
         '''
         ast = self.parse(code)
         read_vars = get_variables_read(ast, code)
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set())
         self.assertEqual(write_vars, set())
-    
+
     def test_variables_labeled_break(self):
         code = b'''
            l1: while (true) {
                 break l1;
-            } 
+            }
         '''
         ast = self.parse(code)
         read_vars = get_variables_read(ast, code)
@@ -209,18 +208,17 @@ class TestParseVariables(TestCase):
         self.assertEqual(read_vars, set())
         self.assertEqual(write_vars, set())
 
-    def test_variables_labeled_break(self):
+    def test_variables_labeled_continue(self):
         code = b'''
            l1: while (true) {
                 continue l1;
-            } 
+            }
         '''
         ast = self.parse(code)
         read_vars = get_variables_read(ast, code)
         write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set())
         self.assertEqual(write_vars, set())
-
 
     def test_all_variables(self):
         code = b'''

@@ -42,7 +42,9 @@ def get_variables_read(node: Statement, source_code: bytes) -> Set[Variable]:
     if node.type == 'resource':
         return get_variables_read(node.child_by_field_name('value'), source_code)
     if node.type == 'method_invocation':
-        return get_variables_read(node.child_by_field_name('object'), source_code) | get_variables_read(node.child_by_field_name('arguments'), source_code)
+        subject = get_variables_read(node.child_by_field_name('object'), source_code)
+        args = get_variables_read(node.child_by_field_name('arguments'), source_code)
+        return subject | args
     if node.type == 'variable_declarator':
         return get_variables_read(node.child_by_field_name('value'), source_code)
     if node.type == 'identifier' and node.parent.type not in ['labeled_statement', 'break_statement', 'continue_statement']:
