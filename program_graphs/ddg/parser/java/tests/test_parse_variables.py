@@ -64,6 +64,17 @@ class TestParseVariables(TestCase):
         variables = get_variables_written(ast, code)
         self.assertEqual(variables, set(['i', 'j']))
 
+    def test_variables_writes_binary_expression(self) -> None:
+        code = b'''
+            for (; i < 10 ; ){
+            }
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set(['i']))
+        self.assertEqual(write_vars, set())
+
     def test_variables_reads_declarations_empty(self) -> None:
         code = b'''
             int a;
@@ -105,13 +116,25 @@ class TestParseVariables(TestCase):
         variables = get_variables_read(ast, code)
         self.assertEqual(variables, set(['j', 'k']))
 
-    def test_variables_reads_boolean_expression(self) -> None:
+    def test_variables_reads_boolean_expression_1(self) -> None:
         code = b'''
             a = b == c;
         '''
         ast = self.parse(code)
-        variables = get_variables_read(ast, code)
-        self.assertEqual(variables, set(['b', 'c']))
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set(['b', 'c']))
+        self.assertEqual(write_vars, set(['a']))
+
+    def test_variables_reads_boolean_expression_2(self) -> None:
+        code = b'''
+            a = (b < c);
+        '''
+        ast = self.parse(code)
+        read_vars = get_variables_read(ast, code)
+        write_vars = get_variables_written(ast, code)
+        self.assertEqual(read_vars, set(['b', 'c']))
+        self.assertEqual(write_vars, set(['a']))
 
     def test_variables_with_generic_types(self) -> None:
         code = b'''
