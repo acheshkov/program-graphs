@@ -1,3 +1,4 @@
+import os
 from typing import Any, List, Optional
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg import CFG
@@ -9,6 +10,7 @@ from program_graphs.cfg.types import Node, JumpKind, Label
 from program_graphs.cfg.parser.java.break_stmt import mk_cfg_break
 from program_graphs.cfg.parser.java.continue_stmt import mk_cfg_continue
 from program_graphs.cfg.parser.java.return_stmt import mk_cfg_return
+from program_graphs.utils import get_project_root
 
 
 def parse(source_code: str) -> CFG:
@@ -18,7 +20,7 @@ def parse(source_code: str) -> CFG:
 
         # Include one or more languages
         [
-            './tree-sitter-java'
+            os.path.join(get_project_root(), "tree-sitter-java")
         ]
     )
     JAVA_LANGUAGE = Language('build/my-languages.so', 'java')
@@ -66,6 +68,9 @@ def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
 
     if node.type == 'labeled_statement':
         return mk_cfg_labeled_statement(node, **kwargs)
+
+    if node.type == 'method_declaration':
+        return mk_cfg_method_declaration(node, **kwargs)
 
     cfg = CFG()
     cfg.add_node([node], 'statement')
@@ -277,3 +282,23 @@ def mk_cfg_do_while(node: Node, label: Label = None, source: bytes = None) -> CF
     manage_jumps(cfg)
     cfg = eliminate_redundant_nodes(cfg)
     return cfg
+
+def mk_cfg_method_declaration(node: Node, label: Label = None, source: bytes = None) -> CFG:
+    body = mk_cfg(node.child_by_field_name('body'), source=source)
+    formal_params = mk_cfg_of_list_of_nodes(
+        [n for n in node.child_by_field_name('parameters').children if n.type == 'formal_parameter'],
+        source=source,
+        bytes=bytes
+    )
+    cfg = combine(formal_params, body)
+    cfg = eliminate_redundant_nodes(cfg)
+    return cfg
+
+# def mk_cfg_class_declaration(node: Node, label: Label = None, source: bytes = None) -> CFG:
+#     body = mk_cfg(node.child_by_field_name('body'))
+#     formal_params = mk_cfg_of_list_of_nodes(
+#         [n for n in node.child_by_field_name('parameters').children if n.type == 'formal_parameter']
+#     )
+#     cfg = combine(formal_params, body)
+#     cfg = eliminate_redundant_nodes(cfg)
+#     return cfg

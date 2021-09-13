@@ -31,7 +31,6 @@ class TestAllPathsFromNode(TestCase):
     def test_all_paths_from_simple_loop(self) -> None:
         g = nx.DiGraph([(1, 2), (1, 3), (2, 1)])
         paths = all_paths_from(g, 1)
-        print(paths)
         self.assertEqual(paths, [[1, 2], [1, 3]])
 
 

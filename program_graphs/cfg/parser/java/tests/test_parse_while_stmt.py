@@ -87,7 +87,6 @@ class TestParseWhile(TestCase):
         while_node = parser.parse(bts).root_node.children[0]
         assert while_node.type == 'while_statement'
         cfg = mk_cfg_while(while_node)
-        print(cfg)
         self.assertTrue(nx.algorithms.is_isomorphic(
             cfg, nx.DiGraph([
                 ('start', 'condition_1'),
@@ -111,7 +110,6 @@ class TestParseWhile(TestCase):
         while_node = parser.parse(bts).root_node.children[0]
         assert while_node.type == 'while_statement'
         cfg = mk_cfg_while(while_node)
-        print(cfg)
         self.assertTrue(nx.algorithms.is_isomorphic(
             cfg, nx.DiGraph([
                 ('start', 'condition_1'),

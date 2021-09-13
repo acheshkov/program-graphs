@@ -47,7 +47,6 @@ class TestFCFGMaker(TestCase):
         bb_4 = cfg.add_node([None])
         cfg.add_edges_from([(start, bb_1), (bb_1, bb_2), (bb_2, bb_3), (bb_1, bb_4), (bb_3, bb_1)])
         fcfg = mk_fcfg_from_cfg(cfg)
-        print(nx.get_edge_attributes(fcfg, 'flow'))
         self.assertTrue(nx.algorithms.is_isomorphic(
             fcfg, nx.DiGraph([
                 ("start", "b1"),
