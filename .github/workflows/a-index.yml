@@ -22,4 +22,4 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Calculate A-Index
         run: |
-          docker run -v ${{ github.workspace }}:/${{ github.workspace }}  alexbers/anomaly python3 prototype.py /${{ github.workspace }}
+          docker run -v ${{ github.workspace }}:/${{ github.workspace }}  alexbers/anomaly python3 prototype.py /${{ github.workspace }} man
