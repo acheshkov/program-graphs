@@ -131,7 +131,6 @@ class TestParseDoWhile(TestCase):
         node = parser.parse(bts).root_node.children[0]
         assert node.type == 'do_statement'
         cfg = mk_cfg_do_while(node)
-        print(cfg)
         self.assertTrue(nx.algorithms.is_isomorphic(
             cfg, nx.DiGraph([
                 ('start', 'merged_body_condition_continue'),

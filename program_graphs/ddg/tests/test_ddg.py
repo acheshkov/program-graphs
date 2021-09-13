@@ -36,6 +36,25 @@ class TestDDG(TestCase):
             ])
         ))
 
+    def test_ddg_nodes_has_statments_attribute(self) -> None:
+        code = '''
+            int a = 0;
+            int b = a;
+        '''
+        ddg = self.mk_ddg_from_source(code)
+        for _, stmt in ddg.nodes(data='statement'):
+            self.assertIsNotNone(stmt)
+
+    def test_ddg_edge_has_var_attribute(self) -> None:
+        code = '''
+            int a = 0;
+            int b = a;
+        '''
+        ddg = self.mk_ddg_from_source(code)
+        for _, _, var_name in ddg.edges(data='var'):
+            self.assertIsNotNone(var_name)
+            self.assertEqual(var_name, 'a')
+
 
 if __name__ == '__main__':
     main()
