@@ -29,9 +29,6 @@ def left_most_identifier(node: Statement) -> Statement:
     return identifiers_df(node)[0]
 
 
-
-
-
 def _write_read_indetifiers_of_children(
     node: Statement,
     source_code: bytes
@@ -83,10 +80,10 @@ def write_read_identifiers_update_expression(
     return write, read
 
 
-def write_read_identifiers(
+def write_read_identifiers(  # noqa
     node: Statement,
     source_code: bytes
-) -> Tuple[List[WriteIdentifier], List[ReadIdentifier]]: 
+) -> Tuple[List[WriteIdentifier], List[ReadIdentifier]]:
     if node is None:
         return [], []
 
@@ -204,4 +201,3 @@ def find_dependent_stmt(
             yield node
         if var in write_vars_map[node]:
             break
-
