@@ -177,7 +177,7 @@ class TestParseVariables(TestCase):
         '''
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        self.assertEqual(read_vars, set(['d']))
+        self.assertEqual(read_vars, set(['a', 'd']))
         self.assertEqual(write_vars, set(['a']))
 
     def test_variables_access_to_array_index(self) -> None:
@@ -186,8 +186,17 @@ class TestParseVariables(TestCase):
         '''
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        self.assertEqual(read_vars, set(['b', 'i', 'j']))
+        self.assertEqual(read_vars, set(['a', 'b', 'i', 'j']))
         self.assertEqual(write_vars, set(['a']))
+
+    # def test_variables_access_to_object_property(self) -> None:
+    #     code = b'''
+    #        a.b = c;
+    #     '''
+    #     ast = self.parse(code)
+    #     read_vars, write_vars = read_write_variables(ast, code)
+    #     self.assertEqual(read_vars, set(['a', 'c']))
+    #     self.assertEqual(write_vars, set(['a']))
 
     def test_variables_access_to_array_index_increment(self) -> None:
         code = b'''
@@ -195,7 +204,7 @@ class TestParseVariables(TestCase):
         '''
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        self.assertEqual(read_vars, set(['b', 'i', 'j']))
+        self.assertEqual(read_vars, set(['a', 'b', 'i', 'j']))
         self.assertEqual(write_vars, set(['a', 'j']))
 
     def test_variables_if_condition(self) -> None:
