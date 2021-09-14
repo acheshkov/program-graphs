@@ -12,8 +12,8 @@ def mk_ddg(cfg: CFG, source_code: str) -> DDG:
     ddg = DDG()
     full_cfg = mk_fcfg_from_cfg(cfg)
     dds = get_data_dependencies(full_cfg, source_code.encode())
-    for (write_node, read_node, var) in dds:
-        ddg.add_edge(write_node, read_node, dependency='data', var=var)
+    for (write_node, read_node, vars) in dds:
+        ddg.add_edge(write_node, read_node, dependency='data', vars=vars)
         nx.set_node_attributes(ddg, {
             write_node: {'statement': nx.get_node_attributes(full_cfg, 'statement').get(write_node)},
             read_node: {'statement': nx.get_node_attributes(full_cfg, 'statement').get(read_node)}

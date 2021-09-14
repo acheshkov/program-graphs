@@ -36,6 +36,16 @@ class TestDDG(TestCase):
             ])
         ))
 
+    def test_ddg_multiple_vars_from_the_same_node(self) -> None:
+        code = '''
+            int a = 0, b = 0;
+            int c = a + b;
+        '''
+        ddg = self.mk_ddg_from_source(code)
+        for _, _, vars in ddg.edges(data='vars'):
+            self.assertIsNotNone(vars)
+            self.assertEqual(vars, set([('a', 'int'), ('b', 'int')]))
+
     def test_ddg_nodes_has_statments_attribute(self) -> None:
         code = '''
             int a = 0;
@@ -51,9 +61,9 @@ class TestDDG(TestCase):
             int b = a;
         '''
         ddg = self.mk_ddg_from_source(code)
-        for _, _, var_name in ddg.edges(data='var'):
-            self.assertIsNotNone(var_name)
-            self.assertEqual(var_name, 'a')
+        for _, _, vars in ddg.edges(data='vars'):
+            self.assertIsNotNone(vars)
+            self.assertEqual(vars, set([('a', 'int')]))
 
 
 if __name__ == '__main__':
