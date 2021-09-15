@@ -75,14 +75,14 @@ class TestParseTryCatch(TestCase):
         parser = self.get_parser()
         bts = b"""
             try {
-                stmt1();
-                stmt1();
+                stmt();
+                stmt();
             } catch (Exception e) {
-                stmt2();
-                stmt2();
+                stmt();
+                stmt();
             } finally{
-                stmt3();
-                stmt3();
+                stmt();
+                stmt();
             }
         """
         node = parser.parse(bts).root_node.children[0]
