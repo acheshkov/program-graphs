@@ -71,9 +71,12 @@ def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
 
     if node.type == 'method_declaration':
         return mk_cfg_method_declaration(node, **kwargs)
-    
+
     if node.type == 'try_statement':
         return mk_cfg_try_catch(node, **kwargs)
+
+    if node.type == 'synchronized_statement':
+        return mk_cfg_synchronized(node, **kwargs)
 
     cfg = CFG()
     cfg.add_node([node], 'statement')
@@ -316,3 +319,6 @@ def mk_cfg_try_catch(node: Node, **kwargs: Any) -> CFG:
     # cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
     cfg = eliminate_redundant_nodes(cfg)
     return cfg
+
+def mk_cfg_synchronized(node: Node, **kwargs: Any) -> CFG:
+    return mk_cfg(node.child_by_field_name('body'), **kwargs)

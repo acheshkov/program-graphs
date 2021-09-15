@@ -19,7 +19,7 @@ class TestParseTryCatch(TestCase):
         parser.set_language(JAVA_LANGUAGE)
         return parser
 
-    def test_cfg_try_catch_trivbial(self) -> None:
+    def test_cfg_try_catch_trivial(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try {
