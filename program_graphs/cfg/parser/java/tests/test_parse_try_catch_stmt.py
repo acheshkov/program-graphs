@@ -1,7 +1,7 @@
 
 from unittest import TestCase, main
 from tree_sitter import Language, Parser  # type: ignore
-from program_graphs.cfg.parser.java.parser import mk_cfg_try_catch, mk_cfg_if_else
+from program_graphs.cfg.parser.java.parser import mk_cfg_try_catch
 import networkx as nx  # type: ignore
 
 
@@ -87,7 +87,6 @@ class TestParseTryCatch(TestCase):
         """
         node = parser.parse(bts).root_node.children[0]
         assert node.type == 'try_statement'
-        
         cfg = mk_cfg_try_catch(node)
         for node in cfg.nodes():
             self.assertEqual(len(cfg.get_block(node)), 2)
