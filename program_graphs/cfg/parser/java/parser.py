@@ -71,6 +71,9 @@ def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
 
     if node.type == 'method_declaration':
         return mk_cfg_method_declaration(node, **kwargs)
+    
+    if node.type == 'try_statement':
+        return mk_cfg_try_catch(node, **kwargs)
 
     cfg = CFG()
     cfg.add_node([node], 'statement')
@@ -294,11 +297,22 @@ def mk_cfg_method_declaration(node: Node, label: Label = None, source: bytes = N
     cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
-# def mk_cfg_class_declaration(node: Node, label: Label = None, source: bytes = None) -> CFG:
-#     body = mk_cfg(node.child_by_field_name('body'))
-#     formal_params = mk_cfg_of_list_of_nodes(
-#         [n for n in node.child_by_field_name('parameters').children if n.type == 'formal_parameter']
-#     )
-#     cfg = combine(formal_params, body)
-#     cfg = eliminate_redundant_nodes(cfg)
-#     return cfg
+def mk_cfg_try_catch(node: Node, **kwargs: Any) -> CFG:
+    try_body = mk_cfg(node.child_by_field_name('body'), **kwargs)
+    catch_node = [ch for ch in node.children if ch.type == 'catch_clause'][0]
+    catch = mk_cfg(catch_node.child_by_field_name('body'), **kwargs)
+    final_nodes = [ch for ch in node.children if ch.type == 'finally_clause']
+    if len(final_nodes) > 0:
+        final_body_node =  [ch for ch in final_nodes[0].children if ch.type == 'block'][0]
+        final = mk_cfg(final_body_node, **kwargs)
+    else:
+        final = mk_empty_cfg()
+    try_id = try_body.assign_id(try_body.exit_node())
+    final_id = final.assign_id(final.entry_node())
+    cfg = combine(try_body, catch)
+    cfg = combine(cfg, final)
+    cfg.add_edge(cfg.find_node_by_id(try_id), cfg.find_node_by_id(final_id))
+    # cfg.set_node_name(cfg.entry_node(), 'if-condition')
+    # cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+    cfg = eliminate_redundant_nodes(cfg)
+    return cfg
