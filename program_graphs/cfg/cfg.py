@@ -132,6 +132,8 @@ class CFG(nx.DiGraph):
         return f'{name}:{node}'
 
     def assign_id(self, node: NodeID) -> str:
+        if nx.get_node_attributes(self, 'id').get(node) is not None:
+            return nx.get_node_attributes(self, 'id').get(node)  # type: ignore
         id = str(uuid.uuid4())
         nx.set_node_attributes(self, {node: {'id': id}})
         return id

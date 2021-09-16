@@ -25,6 +25,7 @@ extras_require = {}
 
 packages = [
     'program_graphs',
+    'program_graphs.utils',
     'program_graphs.cfg',
     'program_graphs.cfg.parser',
     'program_graphs.cfg.parser.java',
