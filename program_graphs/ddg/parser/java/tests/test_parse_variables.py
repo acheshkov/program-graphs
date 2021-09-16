@@ -1,7 +1,7 @@
 from tree_sitter import Language, Parser  # type: ignore
 from unittest import TestCase, main
 from tree_sitter import Node as Statement
-from program_graphs.ddg.parser.java.utils import get_all_variables, read_write_variables
+from program_graphs.ddg.parser.java.utils import get_all_variables, read_write_variables, filter_nodes
 
 
 class TestParseVariables(TestCase):
@@ -316,9 +316,21 @@ class TestParseVariables(TestCase):
         """
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        # read_vars = get_variables_read(ast, code)
-        # write_vars = get_variables_written(ast, code)
         self.assertEqual(read_vars, set())
+        self.assertEqual(write_vars, set(['a', 'b']))
+
+    def test_variables_formal_parameters(self) -> None:
+        code = b"""
+            public class A {
+                static void foo(int a, int b) {
+                    ;
+                }
+            }
+        """
+        ast = self.parse(code)
+        formal_params = filter_nodes(ast, ['formal_parameters'])[0]
+        read_vars, write_vars = read_write_variables(formal_params, code)
+        self.assertEqual(read_vars, set([]))
         self.assertEqual(write_vars, set(['a', 'b']))
 
     def test_complex_example(self) -> None:

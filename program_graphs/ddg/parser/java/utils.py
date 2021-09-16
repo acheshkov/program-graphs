@@ -6,7 +6,7 @@ from program_graphs.types import NodeID
 from tree_sitter import Node as Statement  # type: ignore
 import networkx as nx  # type: ignore
 from itertools import chain
-
+from program_graphs.utils.graph import filter_nodes
 
 VarName = str
 VarType = str
@@ -18,15 +18,15 @@ ReadIdentifier = Any
 Identifier = Any
 
 
-def filter_nodes(node: Statement, node_types: List[str]) -> List[Statement]:
-    if node is None:
-        return []
-    nodes = list(chain.from_iterable(
-        [filter_nodes(ch, node_types) for ch in node.children]
-    ))
-    if node.type in node_types:
-        return [node] + nodes
-    return nodes
+# def filter_nodes(node: Statement, node_types: List[str]) -> List[Statement]:
+#     if node is None:
+#         return []
+#     nodes = list(chain.from_iterable(
+#         [filter_nodes(ch, node_types) for ch in node.children]
+#     ))
+#     if node.type in node_types:
+#         return [node] + nodes
+#     return nodes
 
 
 def identifiers_df(node: Statement, depth: int = 0) -> List[Statement]:
@@ -150,21 +150,13 @@ def write_read_identifiers(  # noqa
         w_2, r_2 = write_read_identifiers(node.child_by_field_name('arguments'), source_code)
         return w_1 + w_2, r_1 + r_2
 
-    if node.type == 'method_declaration':
-        w, r = write_read_identifiers(node.child_by_field_name('body'), source_code)
-        formal_parameters = identifiers_df(node.child_by_field_name('parameters'))
-        return w + formal_parameters, r
+    if node.type in ['formal_parameter', 'catch_formal_parameter', 'resource']:
+        names = filter_nodes(node.child_by_field_name('name'), ['identifier'])
+        return names, []
 
     if node.type == 'object_creation_expression':
         arguments = identifiers_df(node.child_by_field_name('arguments'))
         return [], arguments
-
-    if node.type == 'catch_formal_parameter':
-        formal_parameters = identifiers_df(node)
-        return formal_parameters, []
-
-    if node.type == 'resource':
-        return identifiers_df(node.child_by_field_name('name')), []
 
     identifier_exceptions = [
         'labeled_statement', 'break_statement', 'continue_statement',
@@ -180,7 +172,7 @@ def statement_to_string(node: Statement, source_code: bytes) -> str:
     return extract_code(node.start_byte, node.end_byte, source_code)
 
 
-def read_write_variables(node: Statement, source_code: bytes) -> Tuple[Set[Variable], Set[Variable]]:
+def read_write_variables(node: Statement, source_code: bytes) -> Tuple[Set[VarName], Set[VarName]]:
     w, r = write_read_identifiers(node, source_code)
     w = [statement_to_string(s, source_code) for s in w]
     r = [statement_to_string(s, source_code) for s in r]
@@ -194,7 +186,7 @@ def read_write_variables_with_types(node: Statement, source_code: bytes) -> Tupl
     return set(r), set(w)
 
 
-def get_all_variables(node: Statement, source_code: bytes) -> Set[Variable]:
+def get_all_variables(node: Statement, source_code: bytes) -> Set[VarName]:
     read_vars, write_vars = read_write_variables(node, source_code)
     return write_vars | read_vars
 
@@ -263,11 +255,8 @@ def find_dependent_stmt(
 def get_declared_variables_nodes(node: Statement, source_code: bytes) -> List[Statement]:
     if node.type == 'variable_declarator':
         return [left_most_identifier(node)]
-    if node.type == 'catch_formal_parameter':
+    if node.type in ['catch_formal_parameter', 'formal_parameter', 'resource']:
         return filter_nodes(node, ['identifier'])
-    if node.type == 'method_declaration':
-        method_arguments = filter_nodes(node.child_by_field_name('parameters'), ['identifier'])
-        return method_arguments + get_declared_variables_nodes(node.child_by_field_name('body'), source_code)
     vars = list()
     for child in node.children:
         vars += get_declared_variables_nodes(child, source_code)

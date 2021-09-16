@@ -1,4 +1,5 @@
 import os
+from program_graphs.utils.graph import filter_nodes
 from typing import Any, List, Optional
 from tree_sitter import Language, Parser  # type: ignore
 from program_graphs.cfg import CFG
@@ -74,6 +75,9 @@ def mk_cfg(node: Optional[Node], **kwargs: Any) -> CFG:
 
     if node.type == 'try_statement':
         return mk_cfg_try_catch(node, **kwargs)
+
+    if node.type == 'try_with_resources_statement':
+        return mk_cfg_try_with_resources(node, **kwargs)
 
     if node.type == 'synchronized_statement':
         return mk_cfg_synchronized(node, **kwargs)
@@ -300,25 +304,60 @@ def mk_cfg_method_declaration(node: Node, label: Label = None, source: bytes = N
     cfg = eliminate_redundant_nodes(cfg)
     return cfg
 
-def mk_cfg_try_catch(node: Node, **kwargs: Any) -> CFG:
-    try_body = mk_cfg(node.child_by_field_name('body'), **kwargs)
-    catch_node = [ch for ch in node.children if ch.type == 'catch_clause'][0]
-    catch = mk_cfg(catch_node.child_by_field_name('body'), **kwargs)
+
+def mk_cfg_catch(node: Node, **kwargs: Any) -> CFG:
+    catch_formal_parameter = filter_nodes(node, ['catch_formal_parameter'])[0]
+    return combine_list([
+        mk_cfg(catch_formal_parameter, **kwargs),
+        mk_cfg(node.child_by_field_name('body'), **kwargs)
+    ])
+
+def mk_cfg_finally(node: Node, **kwargs: Any) -> CFG:
+    final_body_node = [ch for ch in node.children if ch.type == 'block'][0]
+    return mk_cfg(final_body_node, **kwargs)
+
+def mk_cfg_try_catch(node: Node, resources: Optional[Node] = [], **kwargs: Any) -> CFG:
+    try_body = combine_list([
+        mk_cfg_of_list_of_nodes(resources or []),
+        mk_cfg(node.child_by_field_name('body'), **kwargs)
+    ])
+    catch_nodes = [ch for ch in node.children if ch.type == 'catch_clause']
+    catches = [mk_cfg_catch(node, **kwargs) for node in catch_nodes]
+    if len(catches) == 0:
+        catches = [mk_empty_cfg()]
+ 
     final_nodes = [ch for ch in node.children if ch.type == 'finally_clause']
     if len(final_nodes) > 0:
-        final_body_node =  [ch for ch in final_nodes[0].children if ch.type == 'block'][0]
-        final = mk_cfg(final_body_node, **kwargs)
+        final = mk_cfg_finally(final_nodes[0])
     else:
         final = mk_empty_cfg()
+
     try_id = try_body.assign_id(try_body.exit_node())
+    catch_entry_ids = [c.assign_id(c.entry_node()) for c in catches]
+    catch_exit_ids = [c.assign_id(c.exit_node()) for c in catches]
     final_id = final.assign_id(final.entry_node())
-    cfg = combine(try_body, catch)
-    cfg = combine(cfg, final)
+    cfg = try_body
+    for catch_entry_id, catch_exit_id, catch_cfg in zip(catch_entry_ids, catch_exit_ids, catches):
+        cfg.find_node_by_id(try_id)
+        catch_cfg.find_node_by_id(catch_entry_id)
+        cfg = combine(cfg, catch_cfg, cfg.find_node_by_id(try_id), catch_cfg.find_node_by_id(catch_entry_id))
+
+    cfg = combine(cfg, final, cfg.find_node_by_id(catch_exit_ids[0]))
+    for catch_exit_id in catch_exit_ids[1: ]:
+        cfg.add_edge(cfg.find_node_by_id(catch_exit_id), cfg.find_node_by_id(final_id))
+
+    cfg.find_node_by_id(final_id)
     cfg.add_edge(cfg.find_node_by_id(try_id), cfg.find_node_by_id(final_id))
-    # cfg.set_node_name(cfg.entry_node(), 'if-condition')
-    # cfg.set_node_name(cfg.find_node_by_id(exit_id), 'exit')
+    cfg.set_node_name(cfg.entry_node(), 'try')
+    for catch_entry_id in catch_entry_ids:
+        cfg.set_node_name(cfg.find_node_by_id(catch_entry_id), 'catch')
+    cfg.set_node_name(cfg.find_node_by_id(final_id), 'finally')
     cfg = eliminate_redundant_nodes(cfg)
     return cfg
+
+def mk_cfg_try_with_resources(node: Node, **kwargs: Any) -> CFG:
+    resources = filter_nodes(node.child_by_field_name('resources'), ['resource'])
+    return mk_cfg_try_catch(node, resources, **kwargs)
 
 def mk_cfg_synchronized(node: Node, **kwargs: Any) -> CFG:
     return mk_cfg(node.child_by_field_name('body'), **kwargs)

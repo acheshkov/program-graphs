@@ -52,7 +52,7 @@ class TestParseVariables(TestCase):
 
     def test_var_try_catch(self) -> None:
         code = b'''
-           try {
+            try {
                 ;
             } catch (T1 | T2 e) {
                 ;
@@ -61,6 +61,16 @@ class TestParseVariables(TestCase):
         ast = self.parse(code)
         declarations = get_declared_variables(ast, code)
         self.assertEqual(declarations, set(['e']))
+
+    def test_var_try_resources(self) -> None:
+        code = b'''
+            try (T a = new T()) {
+                ;
+            }
+        '''
+        ast = self.parse(code)
+        declarations = get_declared_variables(ast, code)
+        self.assertEqual(declarations, set(['a']))
 
 
 if __name__ == '__main__':
