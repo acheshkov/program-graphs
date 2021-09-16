@@ -39,7 +39,6 @@ if-condition:0  ->  statement:1
 statement:1     ->  exit:2
 if-condition:0  ->  exit:2
 
-where 
 ```
 
 # How to install
