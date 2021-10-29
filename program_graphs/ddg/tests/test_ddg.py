@@ -61,9 +61,19 @@ class TestDDG(TestCase):
             int b = a;
         '''
         ddg = self.mk_ddg_from_source(code)
+        self.assertEqual(1, len(ddg.edges()))
         for _, _, vars in ddg.edges(data='vars'):
             self.assertIsNotNone(vars)
             self.assertEqual(vars, set([('a', 'int')]))
+
+    def test_ddg_without_edges(self) -> None:
+        code = '''
+            int a;
+            a = 1;
+        '''
+        ddg = self.mk_ddg_from_source(code)
+        self.assertEqual(0, len(ddg.edges()))
+        self.assertEqual(2, len(ddg.nodes()))
 
 
 if __name__ == '__main__':
