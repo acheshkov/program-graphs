@@ -352,6 +352,15 @@ class TestParseVariables(TestCase):
         variables = get_all_variables(ast, code)
         self.assertEqual(variables, set(['a', 'b', 'c']))
 
+    def test_complex_expression(self) -> None:
+        code = b'''
+            PdfDictionary labels = (PdfDictionary)PdfReader.getPdfObjectRelease(dict.get(PdfName.PAGELABELS));
+        '''
+        ast = self.parse(code)
+        read_vars, write_vars = read_write_variables(ast, code)
+        self.assertEqual(read_vars, set(['PdfReader', 'dict', 'PdfName']))
+        self.assertEqual(write_vars, set(['labels']))
+
 
 if __name__ == '__main__':
     main()

@@ -191,6 +191,11 @@ def get_all_variables(node: Statement, source_code: bytes) -> Set[VarName]:
     return write_vars | read_vars
 
 
+def get_all_variables_with_types(node: Statement, source_code: bytes) -> Set[Variable]:
+    read_vars, write_vars = read_write_variables_with_types(node, source_code)
+    return write_vars | read_vars
+
+
 def get_variables_by_stmt(
     fcfg: FCFG,
     source_code: bytes
