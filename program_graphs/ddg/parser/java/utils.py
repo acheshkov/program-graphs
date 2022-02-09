@@ -162,7 +162,7 @@ def write_read_identifiers(  # noqa
         'labeled_statement', 'break_statement', 'continue_statement',
         'method_declaration', 'class_declaration'
     ]
-    if node.type == 'identifier' and node.parent.type not in identifier_exceptions:
+    if node.type == 'identifier' and node.parent.type not in identifier_exceptions and node.start_byte != node.end_byte:
         return [], [node]
 
     return _write_read_indetifiers_of_children(node, source_code)
