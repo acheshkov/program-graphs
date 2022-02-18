@@ -1,7 +1,7 @@
 from tree_sitter import Language, Parser  # type: ignore
 from unittest import TestCase, main
 from tree_sitter import Node as Statement
-from program_graphs.ddg.parser.java.utils import get_all_variables, read_write_variables, filter_nodes, read_write_variables_with_types
+from program_graphs.ddg.parser.java.utils import get_all_variables, read_write_variables, filter_nodes
 
 
 class TestParseVariables(TestCase):
@@ -97,6 +97,7 @@ class TestParseVariables(TestCase):
         read_vars, write_vars = read_write_variables(ast, code)
         self.assertEqual(read_vars, set(['i']))
         self.assertEqual(write_vars, set())
+        
 
     def test_variables_reads_declarations_empty(self) -> None:
         code = b'''
@@ -225,6 +226,16 @@ class TestParseVariables(TestCase):
         read_vars, write_vars = read_write_variables(ast, code)
         self.assertEqual(read_vars, set(['a']))
         self.assertEqual(write_vars, set())
+
+    def test_variables_enhanced_for(self) -> None:
+        code = b'''
+            for (T v: list) {
+            }
+        '''
+        ast = self.parse(code)
+        read_vars, write_vars = read_write_variables(ast, code)
+        self.assertEqual(read_vars, set(['list']))
+        self.assertEqual(write_vars, set(['v']))
 
     def test_variables_anonymous_class(self) -> None:
         code = b'''
