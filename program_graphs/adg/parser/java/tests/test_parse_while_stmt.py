@@ -137,7 +137,21 @@ class TestParseWhile(TestCase):
 
                 ('while_inner_exit', 'body_out_end'),
                 ('body_out_end', 'condition_out')
+            ])
+        ))
 
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cdg(), nx.DiGraph([
+                ('while_outer', 'condition_out'),
+                ('while_outer', 'while_outer_exit'),
+                ('condition_out', 'body_out_start'),
+                ('body_out_start', 'while_inner'),
+                ('body_out_start', 'body_out_end'),
+                ('while_inner', 'condition_inner'),
+                ('while_inner', 'while_inner_exit'),
+                ('condition_inner', 'body_inner_start'),
+                ('body_inner_start', 'break'),
+                ('body_inner_start', 'body_inner_end')
             ])
         ))
 
