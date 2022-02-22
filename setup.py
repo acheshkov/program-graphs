@@ -32,9 +32,9 @@ packages = [
     # 'program_graphs.cfg',
     # 'program_graphs.cfg.parser',
     # 'program_graphs.cfg.parser.java',
-    # 'program_graphs.ddg',
-    # 'program_graphs.ddg.parser',
-    # 'program_graphs.ddg.parser.java'
+    'program_graphs.ddg',
+    'program_graphs.ddg.parser',
+    'program_graphs.ddg.parser.java'
 ]
 
 setup(
