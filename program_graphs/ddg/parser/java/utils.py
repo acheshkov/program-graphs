@@ -1,5 +1,5 @@
 from collections import defaultdict
-from program_graphs import FCFG
+from program_graphs.cfg.fcfg import FCFG
 from program_graphs.cfg.parser.java.utils import extract_code
 from typing import Callable, Tuple, List, Mapping, Set, Iterator, Any, Optional, Iterable, Dict
 from program_graphs.types import NodeID
@@ -16,17 +16,6 @@ DataDependency = Tuple[NodeID, NodeID, Set[Variable]]
 WriteIdentifier = Any
 ReadIdentifier = Any
 Identifier = Any
-
-
-# def filter_nodes(node: Statement, node_types: List[str]) -> List[Statement]:
-#     if node is None:
-#         return []
-#     nodes = list(chain.from_iterable(
-#         [filter_nodes(ch, node_types) for ch in node.children]
-#     ))
-#     if node.type in node_types:
-#         return [node] + nodes
-#     return nodes
 
 
 def identifiers_df(node: Statement, depth: int = 0) -> List[Statement]:

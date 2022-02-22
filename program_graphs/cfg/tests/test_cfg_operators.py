@@ -1,7 +1,6 @@
 
 from unittest import TestCase, main
-from program_graphs import CFG
-from program_graphs.cfg.cfg import merge_cfg
+from program_graphs.cfg.cfg import merge_cfg, CFG
 from program_graphs.cfg.operators import mk_empty_cfg, combine, find_redundant_exit_nodes
 from program_graphs.cfg.operators import remove_empty_node, remove_empty_nodes
 import networkx as nx  # type: ignore
