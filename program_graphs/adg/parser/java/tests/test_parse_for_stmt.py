@@ -31,9 +31,6 @@ class TestParseFOR(TestCase):
         assert for_node.type == 'for_statement'
         adg = mk_empty_adg()
         mk_adg_for(for_node, adg)
-        # print(adg.to_cfg())
-        # adg.remove_edges_from([(a, b) for (a, b, cflow) in adg.edges(data='cflow') if cflow is not True])
-        # print(adg.nodes(), adg.edges(data='cflow'))
 
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(), nx.DiGraph([

@@ -36,7 +36,7 @@ def parse_from_ast(ast: ASTNode, source_code_bytes: bytes) -> ADG:
 EntryNode = NodeID
 ExitNode = NodeID
 
-
+# flake8: noqa: C901
 def mk_adg(
     node: ASTNode,
     adg: ADG,
@@ -55,6 +55,12 @@ def mk_adg(
 
     if node.type == 'for_statement':
         return mk_adg_for(node, adg, parent_adg_node)
+
+    if node.type == 'while_statement':
+        return mk_adg_while(node, adg, parent_adg_node)
+
+    # if node.type == 'do_statement':
+    #     return mk_adg_do_while(node, adg, parent_adg_node)
 
     if node.type == 'if_statement':
         return mk_adg_if(node, adg, parent_adg_node)
@@ -89,9 +95,6 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
     adg.add_edge(node_for_entry, node_for_exit, syntax=True, cdep=True, cflow=True, exit=True)
     adg.add_edge(node_body_exit, node_for_entry, cflow=True)
 
-    # print(node.child_by_field_name('dimensions'))
-    # print(node.child_by_field_name('type'))
-    # print(node.child_by_field_name('value'))
     return node_for_entry, node_for_exit
 
 
@@ -126,6 +129,37 @@ def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None
         adg.add_edge(break_node, node_for_exit, cflow=True)
 
     return node_for_entry, node_for_exit
+
+
+def mk_adg_while(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
+    node_while_entry = adg.add_ast_node(ast_node=node)
+    node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='while_condition')
+    node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('body'), adg)
+    node_while_exit = adg.add_node(name='while_exit')
+
+    if parent_adg_node is not None:
+        adg.add_edge(parent_adg_node, node_while_entry, syntax=True)
+
+    adg.add_edge(node_while_entry, node_condition, syntax=True, cdep=True, cflow=True)
+    adg.add_edge(node_while_entry, node_body_entry, syntax=True)
+    adg.add_edge(node_while_entry, node_while_exit, syntax=True, cdep=True, exit=True)
+    adg.add_edge(node_condition, node_body_entry, cflow=True, cdep=True)
+    adg.add_edge(node_condition, node_while_exit, cflow=True)
+    adg.add_edge(node_body_exit, node_condition, cflow=True)
+
+    while continue_node := adg.pop_continue_node():
+        adg.remove_edges_from([e for e in adg.out_edges(continue_node)])
+        adg.add_edge(continue_node, node_condition, cflow=True)
+
+    while break_node := adg.pop_break_node():
+        adg.remove_edges_from([e for e in adg.out_edges(break_node)])
+        adg.add_edge(break_node, node_while_exit, cflow=True)
+
+    return node_while_entry, node_while_exit
+
+
+def mk_adg_do_while(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
+    pass
 
 
 def mk_adg_if(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
