@@ -1,7 +1,7 @@
 import sys
-from program_graphs.cfg.parser.java import parse
+from program_graphs.adg.parser.java.parser import parse
 
 if __name__ == '__main__':
     input = sys.stdin.read()
-    cfg = parse(input)
-    print(cfg)
+    adg = parse(input)
+    print(adg)

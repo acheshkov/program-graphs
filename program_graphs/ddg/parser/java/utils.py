@@ -58,7 +58,7 @@ def get_type(node: Identifier, source_code: bytes) -> Optional[VarType]:
     if (node.parent.type in ['formal_parameter']):
         return find_types_and_aggregate(node.parent.child_by_field_name('type'), source_code)
 
-    if (node.parent.type in ['catch_formal_parameter']):
+    if (node.parent.type in ['catch_formal_parameter', 'enhanced_for_statement']):
         return find_types_and_aggregate(node.parent, source_code)
 
     if (node.parent.parent.type == 'local_variable_declaration'):
@@ -157,6 +157,9 @@ def write_read_identifiers(  # noqa
     if node.type == 'object_creation_expression':
         arguments = identifiers_df(node.child_by_field_name('arguments'))
         return [], arguments
+
+    if node.type == 'enhanced_for_statement':
+        return identifiers_df(node.child_by_field_name('name')), identifiers_df(node.child_by_field_name('value'))
 
     identifier_exceptions = [
         'labeled_statement', 'break_statement', 'continue_statement',

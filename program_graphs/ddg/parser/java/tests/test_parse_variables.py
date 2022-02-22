@@ -97,7 +97,6 @@ class TestParseVariables(TestCase):
         read_vars, write_vars = read_write_variables(ast, code)
         self.assertEqual(read_vars, set(['i']))
         self.assertEqual(write_vars, set())
-        
 
     def test_variables_reads_declarations_empty(self) -> None:
         code = b'''

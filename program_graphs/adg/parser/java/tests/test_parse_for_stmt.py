@@ -42,7 +42,8 @@ class TestParseFOR(TestCase):
                 ('condition', 'exit'),
                 ('condition', 'body'),
                 ('body', 'stmt'),
-                ('stmt', 'update'),
+                ('stmt', 'body_exit'),
+                ('body_exit', 'update'),
                 ('update', 'condition')
             ])
         ))
@@ -54,7 +55,8 @@ class TestParseFOR(TestCase):
                 ('for', 'exit'),
                 ('condition', 'for_body'),
                 ('condition', 'update'),
-                ('for_body', 'stmt')
+                ('for_body', 'stmt'),
+                ('for_body', 'for_body_exit'),
             ])
         ))
 
@@ -137,7 +139,8 @@ class TestParseFOR(TestCase):
                 ('body', 'stmt_1'),
                 ('stmt_1', 'stmt_break'),
                 ('stmt_break', 'exit'),
-                ('stmt_2', 'update'),
+                ('stmt_2', 'body_exit'),
+                ('body_exit', 'update'),
                 ('update', 'condition')
             ])
         ))
@@ -156,7 +159,7 @@ class TestParseFOR(TestCase):
         adg = mk_empty_adg()
         mk_adg_for(for_node, adg)
         self.assertTrue(nx.algorithms.is_isomorphic(
-           adg.to_cfg(), nx.DiGraph([
+            adg.to_cfg(), nx.DiGraph([
                 ('for', 'init'),
                 ('init', 'condition'),
                 ('condition', 'exit'),
@@ -165,7 +168,8 @@ class TestParseFOR(TestCase):
                 ('stmt_1', 'stmt_continue'),
                 ('stmt_continue', 'update'),
                 ('update', 'condition'),
-                ('stmt_2', 'update'),
+                ('stmt_2', 'body_exit'),
+                ('body_exit', 'update')
             ])
         ))
 

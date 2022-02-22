@@ -36,13 +36,18 @@ class TestParseIF(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
-                ('if', 'condition'), ('condition', 'body'), ('body', 'stmt'), ('condition', 'exit'), ('stmt', 'exit')
+                ('if', 'condition'),
+                ('condition', 'body'),
+                ('body', 'stmt'),
+                ('stmt', 'body_exit'),
+                ('condition', 'exit'),
+                ('body_exit', 'exit')
             ])
         ))
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cdg(),
             nx.DiGraph([
-                ('if', 'condition'), ('condition', 'body'), ('body', 'stmt'), ('if', 'exit')
+                ('if', 'condition'), ('condition', 'body'), ('body', 'stmt'), ('body', 'body_exit'), ('if', 'exit')
             ])
         ))
 
@@ -59,17 +64,18 @@ class TestParseIF(TestCase):
         assert if_node.type == 'if_statement'
         adg = mk_empty_adg()
         mk_adg_if(if_node, adg)
- 
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
                 ('if', 'condition'),
-                ('condition', 'body_true'),
-                ("condition", 'body_false'),
-                ('body_true', 'stmt_1'),
-                ('body_false', 'stmt_2'),
-                ('stmt_1', 'exit'), 
-                ('stmt_2', 'exit')
+                ('condition', 'body_true_block'),
+                ("condition", 'body_false_block'),
+                ('body_true_block', 'stmt_1'),
+                ('body_false_block', 'stmt_2'),
+                ('stmt_1', 'body_true_block_exit'),
+                ('stmt_2', 'body_false_block_exit'),
+                ('body_true_block_exit', 'exit'),
+                ('body_false_block_exit', 'exit')
             ])
         ))
 
@@ -80,7 +86,9 @@ class TestParseIF(TestCase):
                 ('condition', 'body_true'),
                 ('condition', 'body_false'),
                 ('body_true', 'stmt_1'),
+                ('body_true', 'body_true_exit'),
                 ('body_false', 'stmt_2'),
+                ('body_false', 'body_false_exit'),
                 ('if', 'exit')
             ])
         ))

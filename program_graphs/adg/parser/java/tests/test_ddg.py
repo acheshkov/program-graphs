@@ -1,13 +1,12 @@
 from unittest import TestCase, main
 from program_graphs.adg.parser.java.parser import parse
-from program_graphs.adg.adg import ADG
 # from program_graphs.ddg.ddg import DDG, mk_ddg
 import networkx as nx  # type: ignore
 
 
 class TestDDG(TestCase):
 
-    def mk_ddg_from_source(self, code: str) -> ADG:
+    def mk_ddg_from_source(self, code: str) -> nx.DiGraph:
         adg = parse(code)
         return adg.to_ddg()
 

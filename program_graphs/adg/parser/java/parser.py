@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import os
 from program_graphs.adg.adg import ADG, mk_empty_adg
 from program_graphs.adg.parser.java.data_dependency import add_data_dependency_layer
@@ -23,6 +23,7 @@ def parse(source_code: str) -> ADG:
     source_code_bytes = bytes(source_code, 'utf-8')
     ast = parser.parse(source_code_bytes)
     return parse_from_ast(ast.root_node, source_code_bytes)
+
 
 def parse_from_ast(ast: ASTNode, source_code_bytes: bytes) -> ADG:
     adg = mk_empty_adg()
@@ -51,7 +52,7 @@ def mk_adg(
 
     if node.type == 'enhanced_for_statement':
         return mk_adg_enhanced_for(node, adg, parent_adg_node)
-    
+
     if node.type == 'for_statement':
         return mk_adg_for(node, adg, parent_adg_node)
 
@@ -66,7 +67,7 @@ def mk_adg(
 
     if node.type == 'return_statement':
         return mk_adg_return(node, adg, parent_adg_node)
-    
+
     if node.type == 'local_variable_declaration':
         return mk_variable_declaration(node, adg, parent_adg_node)
 
@@ -87,11 +88,12 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
     adg.add_edge(node_for_entry, node_body_entry, syntax=True, cdep=True, cflow=True)
     adg.add_edge(node_for_entry, node_for_exit, syntax=True, cdep=True, cflow=True, exit=True)
     adg.add_edge(node_body_exit, node_for_entry, cflow=True)
-    
+
     # print(node.child_by_field_name('dimensions'))
     # print(node.child_by_field_name('type'))
     # print(node.child_by_field_name('value'))
     return node_for_entry, node_for_exit
+
 
 def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     node_for_entry = adg.add_ast_node(ast_node=node)
@@ -127,7 +129,7 @@ def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None
 
 
 def mk_adg_if(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
-    node_if_entry = adg.add_ast_node(ast_node=node)
+    node_if_entry = adg.add_ast_node(ast_node=node, name='if')
     node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='if_condition')
     node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('consequence'), adg)
     node_if_exit = adg.add_node(name='if_exit')
@@ -194,19 +196,20 @@ def mk_adg_return(
 
 def mk_adg_block(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     node_entry = adg.add_ast_node(ast_node=node)
-    
     # TODO: add comment nodes with only syntax dependency
-    
-    for _node in node.children:
-        if _node.is_named and _node.type != 'comment':
-            continue
-        syntax_node = adg.add_ast_node(_node)
-        adg.add_edge(node_entry, syntax_node, syntax=True)
+    comment_node_types = ['line_comment', 'block_comment']
 
-    adgs = [mk_adg(_node, adg) for _node in node.children if _node.is_named and _node.type != 'comment']
+    adgs: List[Tuple[EntryNode, ExitNode]] = []
+    for _node in node.children:
+        if not _node.is_named or _node.type in comment_node_types:
+            syntax_node = adg.add_ast_node(_node)
+            adg.add_edge(node_entry, syntax_node, syntax=True)
+        else:
+            adgs.append(mk_adg(_node, adg))
+
     if len(adgs) == 0:
         return node_entry, node_entry
-    
+
     first_note_entry = adgs[0][0]
     adg.add_edge(node_entry, first_note_entry, cflow=True)
 
@@ -231,12 +234,18 @@ def mk_adg_block(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = No
     # adg.add_edge(node_entry, last_node_entry, syntax=True)
     return node_entry, node_exit
 
-def mk_variable_declaration(node: Optional[ASTNode], adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
+
+def mk_variable_declaration(
+    node: Optional[ASTNode],
+    adg: ADG,
+    parent_adg_node: Optional[NodeID] = None
+) -> Tuple[EntryNode, ExitNode]:
     node_id = adg.add_ast_node(ast_node=node, var_decl=True)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_id, syntax=True)
-    
+
     return node_id, node_id
+
 
 def mk_default(node: Optional[ASTNode], adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     node_id = adg.add_ast_node(ast_node=node)

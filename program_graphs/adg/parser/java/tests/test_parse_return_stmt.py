@@ -2,7 +2,7 @@
 from unittest import TestCase, main
 from tree_sitter import Language, Parser  # type: ignore
 # from program_graphs.cfg.parser.java.parser import mk_cfg_return, mk_cfg
-from program_graphs.adg.parser.java.parser import mk_adg_return, mk_adg, parse_from_ast
+from program_graphs.adg.parser.java.parser import mk_adg_return, parse_from_ast
 from program_graphs.adg.adg import mk_empty_adg
 import networkx as nx  # type: ignore
 

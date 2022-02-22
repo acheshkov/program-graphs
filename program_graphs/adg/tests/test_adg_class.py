@@ -1,13 +1,13 @@
 
 from unittest import TestCase, main
 from program_graphs.adg.adg import ADG
-import networkx as nx
+import networkx as nx  # type: ignore
 # from program_graphs.cfg.types import JumpKind
 
 
 class TestADGClass(TestCase):
 
-    def test_adg_constructor(self):
+    def test_adg_constructor(self) -> None:
         adg = ADG()
         self.assertIsNotNone(adg)
         self.assertIsInstance(adg, nx.DiGraph)

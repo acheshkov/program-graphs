@@ -60,9 +60,6 @@ class TestParseEnhancedFOR(TestCase):
         adg = mk_empty_adg()
         mk_adg_enhanced_for(for_node, adg)
         self.assertEqual(len(adg.nodes()), 1)
-       
-
-
 
 
 if __name__ == '__main__':
