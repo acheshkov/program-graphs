@@ -77,6 +77,25 @@ class TestDDG(TestCase):
         ddg = self.mk_ddg_from_source(code)
         self.assertEqual(0, len(ddg.edges()))
 
+    def test_ddg_if_else_read_write(self) -> None:
+        code = '''
+            for (;;){
+                if (){
+                    a++;
+                } else {
+                    print(a);
+                }
+
+            }
+        '''
+        ddg = self.mk_ddg_from_source(code)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            ddg, nx.DiGraph([
+                ("a++", "print(a)"),
+                ("a++", "a++")
+            ])
+        ))
+
 
 if __name__ == '__main__':
     main()
