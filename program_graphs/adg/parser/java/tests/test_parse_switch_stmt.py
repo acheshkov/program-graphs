@@ -31,7 +31,6 @@ class TestParseSwitch(TestCase):
         assert node.type == 'switch_block_statement_group'
         adg = mk_empty_adg()
         mk_adg_switch_case_group(node, adg)
-        print(adg.to_cfg())
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([

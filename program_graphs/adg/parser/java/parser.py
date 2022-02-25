@@ -79,6 +79,9 @@ def mk_adg(
 
     if node.type == 'return_statement':
         return mk_adg_return(node, adg, parent_adg_node)
+    
+    if node.type in ['try_statement', 'try_with_resources_statement']:
+        return mk_adg_try_catch(node, adg, parent_adg_node)
 
     if node.type == 'local_variable_declaration':
         return mk_variable_declaration(node, adg, parent_adg_node)
@@ -233,7 +236,10 @@ def mk_adg_switch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = N
     return node_switch_entry, node_switch_exit
 
 def mk_adg_switch_block_group_body(node: ASTNode, adg: ADG, syntax_parent: ASTNode) -> Tuple[EntryNode, ExitNode]:
-    nodes_after_colon = [ mk_adg(node, adg) for node in get_nodes_after_colon(node)]
+    nodes_after_colon = [mk_adg(node, adg) for node in get_nodes_after_colon(node)]
+    if len(nodes_after_colon) == 0:
+        node = adg.add_node(name='empty-case')
+        return node, node
     return combine_cf_linear(nodes_after_colon, adg, syntax_parent)
 
 def mk_adg_switch_case_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
@@ -315,7 +321,7 @@ def mk_adg_finally_block(node: ASTNode, adg: ADG, syntax_parent: NodeID) -> Tupl
     final_body_node = [ch for ch in final_node.children if ch.type == 'block'][0]
     return mk_adg(final_body_node, adg, syntax_parent)
 
-def mk_adg_single_catch_block(node: ASTNode, adg: ADG) -> Tuple[Optional[EntryNode], Optional[ExitNode]]:
+def mk_adg_single_catch_block(node: ASTNode, adg: ADG) -> Tuple[EntryNode, ExitNode]:
     case_node_entry = adg.add_ast_node(node, name='catch-block')
     entry, exit = combine_cf_linear([
         mk_adg(filter_nodes(node, ['catch_formal_parameter'])[0], adg),
@@ -347,13 +353,6 @@ def mk_adg_try_block(node: ASTNode, adg: ADG, syntax_parent: NodeID) -> Tuple[Op
 def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     try_catch_node = adg.add_ast_node(node, name='try-catch')
     try_entry, try_exit = mk_adg_try_block(node, adg, try_catch_node)
-
-    # if len(resources) > 0:
-    #     # combine_cf_linear([mk_adg(r, adg) for r in resources], 
-    #     try_entry, try_exit = mk_adg(node.child_by_field_name('body'), adg)
-    # else:
-    #     try_entry, try_exit = mk_adg(node.child_by_field_name('body'), adg)
-    
     mb_final_entry, mb_final_exit = mk_adg_finally_block(node, adg, try_catch_node)
     mb_catches_entry, mb_catches_exit = mk_adg_many_catch_blocks(node, adg, try_catch_node)
 
@@ -362,27 +361,23 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
         adg.add_edge(parent_adg_node, try_catch_node, syntax=True)
 
     if mb_final_entry is None and mb_catches_exit is None:
-        return try_catch_node, try_exit
+        return try_catch_node, try_exit  # type: ignore
 
     if mb_catches_entry is not None and mb_final_entry is None:
         adg.add_edge(try_exit, mb_catches_entry, cflow=True)
-        return try_catch_node, mb_catches_exit
+        return try_catch_node, mb_catches_exit  # type: ignore
 
     if mb_catches_entry is None and mb_final_entry is not None:
         adg.add_edge(try_exit, mb_final_entry, cflow=True)
-        return try_catch_node, mb_final_exit
+        return try_catch_node, mb_final_exit  # type: ignore
 
     adg.add_edges_from([
         (try_exit, mb_catches_entry),
         (mb_catches_exit, mb_final_entry)
     ], cflow=True)
 
-    return try_catch_node, mb_final_exit
+    return try_catch_node, mb_final_exit  # type: ignore
 
-
-def mk_adg_try_with_resources(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
-    resources = filter_nodes(node.child_by_field_name('resources'), ['resource'])
-    return mk_cfg_try_catch(node, resources, **kwargs)
 
 def mk_adg_block(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     node_entry = adg.add_ast_node(ast_node=node)
@@ -425,7 +420,7 @@ def combine_cf_linear(entry_exit_pairs: List[Tuple[EntryNode, ExitNode]], adg: A
         
     state: State = (adg, syntax_parent, None, None)
     _, _, first_entry, latest_exit = reduce(reduce_step, entry_exit_pairs, state)
-    return  first_entry, latest_exit
+    return first_entry, latest_exit  # type: ignore
 
 def mk_variable_declaration(
     node: Optional[ASTNode],

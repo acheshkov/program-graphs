@@ -1,11 +1,9 @@
 
 from unittest import TestCase, main
 from tree_sitter import Language, Parser  # type: ignore
-# from program_graphs.cfg.parser.java.parser import mk_cfg_try_catch, mk_cfg_catch, mk_cfg_try_with_resources
 from program_graphs.adg.adg import mk_empty_adg
-from program_graphs.adg.parser.java.parser import mk_adg_try_catch, mk_adg_single_catch_block
+from program_graphs.adg.parser.java.parser import mk_adg_try_catch
 import networkx as nx  # type: ignore
-from program_graphs.utils.graph import filter_nodes
 
 
 class TestParseTryCatch(TestCase):
@@ -153,7 +151,6 @@ class TestParseTryCatch(TestCase):
         assert node.type == 'try_statement'
         adg = mk_empty_adg()
         mk_adg_try_catch(node, adg)
-        print(adg.to_cfg())
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
