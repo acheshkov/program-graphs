@@ -108,8 +108,8 @@ class ADG(nx.DiGraph):
             labels.append('syntax')
         if dict.get('cflow', False) is True:
             labels.append('control-flow')
-        if dict.get('cdep', False) is True:
-            labels.append('control-dep')
+        # if dict.get('cdep', False) is True:
+        #     labels.append('control-dep')
         if dict.get('ddep', False) is True:
             labels.append('data-dep')
         return ','.join(labels)

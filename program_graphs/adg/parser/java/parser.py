@@ -297,6 +297,21 @@ def mk_adg_return(
     return node_entry, node_entry
 
 
+def mk_adg_try_catch_blocks():
+    try_entry, try_exit <- 
+    finally_entry, finally_exit <- 
+    combine(catches, try_entry, finally_entry)
+    pass
+
+def mk_adg_try_block() -> Tuple[EntryNode, ExitNode]:
+    pass
+
+def mk_adg_catch_block():
+    pass
+
+def mk_adg_finally_block() -> Tuple[EntryNode, ExitNode]:
+    pass
+
 def mk_adg_block(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
     node_entry = adg.add_ast_node(ast_node=node)
     node_exit = adg.add_node(name='block-exit')
