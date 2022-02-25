@@ -45,17 +45,17 @@ class TestParseFOR(TestCase):
             ])
         ))
 
-        self.assertTrue(nx.algorithms.is_isomorphic(
-            adg.to_cdg(), nx.DiGraph([
-                ('for', 'init'),
-                ('for', 'condition'),
-                ('for', 'exit'),
-                ('condition', 'for_body'),
-                ('condition', 'update'),
-                ('for_body', 'stmt'),
-                ('for_body', 'for_body_exit'),
-            ])
-        ))
+        # self.assertTrue(nx.algorithms.is_isomorphic(
+        #     adg.to_cdg(), nx.DiGraph([
+        #         ('for', 'init'),
+        #         ('for', 'condition'),
+        #         ('for', 'exit'),
+        #         ('condition', 'for_body'),
+        #         ('condition', 'update'),
+        #         ('for_body', 'stmt'),
+        #         ('for_body', 'for_body_exit'),
+        #     ])
+        # ))
 
     # def test_cfg_for_without_init(self) -> None:
     #     parser = self.get_parser()

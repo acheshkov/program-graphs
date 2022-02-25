@@ -43,18 +43,18 @@ class TestParseDoWhile(TestCase):
             ])
         ))
 
-        self.assertTrue(nx.algorithms.is_isomorphic(
-            adg.to_cdg(), nx.DiGraph([
-                ('entry', 'body_block_entry'),
-                ('body_block_entry', 'i++'),
-                ('body_block_entry', 'body_block_exit'),
-                ('entry', 'condition'),
-                ('condition', 'condition'),
-                ('condition', 'body_block_entry'),
-                ('entry', 'exit')
+        # self.assertTrue(nx.algorithms.is_isomorphic(
+        #     adg.to_cdg(), nx.DiGraph([
+        #         ('entry', 'body_block_entry'),
+        #         ('body_block_entry', 'i++'),
+        #         ('body_block_entry', 'body_block_exit'),
+        #         ('entry', 'condition'),
+        #         ('condition', 'condition'),
+        #         ('condition', 'body_block_entry'),
+        #         ('entry', 'exit')
 
-            ])
-        ))
+        #     ])
+        # ))
 
     def test_adg_do_while_nested(self) -> None:
         parser = self.get_parser()
