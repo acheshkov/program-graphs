@@ -41,7 +41,7 @@ class TestParseTryCatch(TestCase):
             ])
         ))
 
-    def test_cfg_try_catch(self) -> None:
+    def test_adg_try_catch(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try {
@@ -69,7 +69,7 @@ class TestParseTryCatch(TestCase):
             ])
         ))
 
-    def test_cfg_try_catch_finally(self) -> None:
+    def test_adg_try_catch_finally(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try {
@@ -134,7 +134,7 @@ class TestParseTryCatch(TestCase):
     #         ])
     #     ))
 
-    def test_cfg_try_multiple_catch_finally(self) -> None:
+    def test_adg_try_multiple_catch_finally(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try {
@@ -175,7 +175,7 @@ class TestParseTryCatch(TestCase):
             ])
         ))
 
-    def test_cfg_try_finally(self) -> None:
+    def test_adg_try_finally(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try {
@@ -240,7 +240,7 @@ class TestParseTryCatch(TestCase):
     #         for node in cfg.get_block(block_id):
     #             self.assertTrue(node.type, 'catch_formal_parameter')
 
-    def test_cfg_try_with_resources_has_resources(self) -> None:
+    def test_adg_try_with_resources_has_resources(self) -> None:
         parser = self.get_parser()
         bts = b"""
             try (T1 a = mk1(); T2 b = mk2()) {

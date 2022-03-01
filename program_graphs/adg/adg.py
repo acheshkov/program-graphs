@@ -1,16 +1,17 @@
-from typing import List, Mapping, Optional, Tuple, Any
+from typing import List, Mapping, Optional, Tuple, Any, Dict, Optional
 import networkx as nx  # type: ignore
 from tabulate import tabulate
 from program_graphs.types import NodeID, ASTNode
 
+Label = str
 
 class ADG(nx.DiGraph):
     'Any Dependency Graph'
 
     def __init__(self) -> None:
         super().__init__()
-        self._continue_nodes: List[NodeID] = []
-        self._break_nodes: List[NodeID] = []
+        self._continue_nodes: Dict[NodeID, Optional[Label]] = {}
+        self._break_nodes: Dict[NodeID, Optional[Label]] = {}
         self._return_nodes: List[NodeID] = []
 
     def add_ast_node(self, ast_node: ASTNode, name: str = None, **kwargs: Any) -> NodeID:
@@ -28,21 +29,45 @@ class ADG(nx.DiGraph):
     def push_return_node(self, node: NodeID) -> None:
         self._return_nodes.append(node)
 
-    def push_break_node(self, node: NodeID) -> None:
-        self._break_nodes.append(node)
+    def push_break_node(self, node: NodeID, label: Label = None) -> None:
+         self._break_nodes[node] = label
+        # self._break_nodes.append((node, label))
 
-    def push_continue_node(self, node: NodeID) -> None:
-        self._continue_nodes.append(node)
+    def push_continue_node(self, node: NodeID, label: Label = None) -> None:
+        self._continue_nodes[node] = label
+        # self._continue_nodes.append((node, label))
 
-    def pop_continue_node(self) -> Optional[NodeID]:
+    def pop_continue_node(self) -> Optional[Tuple[NodeID, Label]]:
         if len(self._continue_nodes) == 0:
             return None
-        return self._continue_nodes.pop()
+        first_key, first_value = list(self._continue_nodes.items())[0]
+        del self._continue_nodes[first_key]
+        return first_key, first_value
 
     def pop_break_node(self) -> Optional[NodeID]:
         if len(self._break_nodes) == 0:
             return None
-        return self._break_nodes.pop()
+        first_key, first_value = list(self._break_nodes.items())[0]
+        del self._break_nodes[first_key]
+        return first_key, first_value
+
+    def rewire_break_nodes(self, target_node: NodeID, label: Optional[Label] = None) -> None:
+        break_nodes = list(self._break_nodes.keys())
+        for node in break_nodes:
+            if self._break_nodes[node] != label:
+                continue
+            self.remove_edges_from([e for e in self.out_edges(node)])
+            self.add_edge(node, target_node, cflow=True)
+            del self._break_nodes[node]
+
+    def rewire_continue_nodes(self, target_node: NodeID, label: Optional[Label] = None) -> None:
+        continue_nodes = list(self._continue_nodes.keys())
+        for node in continue_nodes:
+            if self._continue_nodes[node] != label:
+                continue
+            self.remove_edges_from([e for e in self.out_edges(node)])
+            self.add_edge(node, target_node, cflow=True)
+            del self._continue_nodes[node]
 
     def get_entry_node(self) -> NodeID:
         return 1
@@ -55,10 +80,6 @@ class ADG(nx.DiGraph):
                 continue
             exit_candidates_l2.append(candidate)
 
-        if len(exit_candidates_l2) != 1:
-            print("exit_candidates_l1", exit_candidates_l1)
-            print("exits", exit_candidates_l2)
-            print(self)
         assert len(exit_candidates_l2) == 1
         return exit_candidates_l2[0]
 
