@@ -33,7 +33,8 @@ def _fst(ss: Iterable[Tuple[VarName, VarType]]) -> Iterable[VarName]:
 def add_data_dependency_layer(g: ADG, source_code: bytes) -> None:
     ''' Figure out and add Data Dependency relations to ADG graph '''
     node2read_var, _ = bind_variables(g, source_code)
-    data_dependencies: Mapping[NodeID, VarTable] = kuzma_blud(g.to_cfg(), g.get_entry_node())
+    data_dependencies: Dict[NodeID, VarTable] = defaultdict(lambda: defaultdict(set))
+    kuzma_blud(g.to_cfg(), g.get_entry_node(), global_state=data_dependencies)
 
     for node, var_table in data_dependencies.items():
         for var_name, write_nodes in var_table.items():
@@ -94,19 +95,16 @@ def copy_and_update_var_table(tb: VarTable, g: ADG, node: NodeID) -> VarTable:
 def kuzma_blud(
     g: ADG,
     node: NodeID,
-    parent_var_table: VarTable = defaultdict(set),
-    global_state: Mapping[NodeID, VarTable] = None
-) -> Mapping[NodeID, VarTable]:
-    global_state = (global_state or defaultdict(lambda: defaultdict(set)))
+    global_state: Dict[NodeID, VarTable],
+    parent_var_table: VarTable = defaultdict(set)
+) -> None:
 
     if merge_var_table_if_requried(global_state[node], parent_var_table) is not None:
         current_var_table = copy_and_update_var_table(parent_var_table, g, node)
         for s in g.successors(node):
-            kuzma_blud(g, s, current_var_table, global_state)
+            kuzma_blud(g, s, global_state, current_var_table)
     else:
         not_visited_successors = [s for s in g.successors(node) if global_state.get(s) is None]
         current_var_table = copy_and_update_var_table(parent_var_table, g, node)
         for s in not_visited_successors:
-            kuzma_blud(g, s, current_var_table, global_state)
-
-    return global_state
+            kuzma_blud(g, s, global_state, current_var_table)
