@@ -52,6 +52,10 @@ def mk_adg(
     if node.type == 'program':
         return mk_adg_block(node, adg, parent_adg_node, source)
 
+    if node.type == 'class_declaration':
+        methods = filter_nodes(node, ['method_declaration'])
+        return mk_adg(methods[0], adg, parent_adg_node, source)
+
     if node.type == 'method_declaration':
         return mk_adg_method_declaration(node, adg, parent_adg_node, source)
 
