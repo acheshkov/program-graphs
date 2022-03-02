@@ -4,6 +4,9 @@ import networkx as nx  # type: ignore
 from program_graphs.types import NodeID
 from program_graphs.ddg.parser.java.utils import VarName, VarType, Variable, read_write_variables_with_types
 from program_graphs.adg.adg import ADG
+from sys import setrecursionlimit
+
+setrecursionlimit(5000)
 
 VarTable = Dict[VarName, Set[NodeID]]  # Mapping from variable name to list of nodes that wrote this variable recently
 
