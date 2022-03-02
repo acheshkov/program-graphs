@@ -1,9 +1,10 @@
-from typing import List, Mapping, Optional, Tuple, Any, Dict, Optional
+from typing import List, Mapping, Optional, Tuple, Any, Dict
 import networkx as nx  # type: ignore
 from tabulate import tabulate
 from program_graphs.types import NodeID, ASTNode
 
 Label = str
+
 
 class ADG(nx.DiGraph):
     'Any Dependency Graph'
@@ -30,21 +31,21 @@ class ADG(nx.DiGraph):
         self._return_nodes.append(node)
 
     def push_break_node(self, node: NodeID, label: Label = None) -> None:
-         self._break_nodes[node] = label
+        self._break_nodes[node] = label
         # self._break_nodes.append((node, label))
 
     def push_continue_node(self, node: NodeID, label: Label = None) -> None:
         self._continue_nodes[node] = label
         # self._continue_nodes.append((node, label))
 
-    def pop_continue_node(self) -> Optional[Tuple[NodeID, Label]]:
+    def pop_continue_node(self) -> Optional[Tuple[NodeID, Optional[Label]]]:
         if len(self._continue_nodes) == 0:
             return None
         first_key, first_value = list(self._continue_nodes.items())[0]
         del self._continue_nodes[first_key]
         return first_key, first_value
 
-    def pop_break_node(self) -> Optional[NodeID]:
+    def pop_break_node(self) -> Optional[Tuple[NodeID, Optional[Label]]]:
         if len(self._break_nodes) == 0:
             return None
         first_key, first_value = list(self._break_nodes.items())[0]

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, List
 import os
 
-from numpy import outer
+# from numpy import outer
 from program_graphs.adg.adg import ADG, mk_empty_adg
 from program_graphs.adg.parser.java.data_dependency import add_data_dependency_layer
 from tree_sitter import Language, Parser  # type: ignore
@@ -312,37 +312,25 @@ def mk_adg_switch_default_group(node: ASTNode, adg: ADG, parent_adg_node: Option
 
 def find_continue_target_node(adg: ADG, node: NodeID, ast_node_type: str) -> Optional[NodeID]:
     if ast_node_type == 'for_statement':
-        return [s for s in adg.successors(node) if adg.nodes[s].get('name') == 'for_update'][0]
+        return next((s for s in adg.successors(node) if adg.nodes[s].get('name') == 'for_update'), None)
     if ast_node_type == 'while_statement':
-        return [s for s in adg.successors(node) if adg.nodes[s].get('name') == 'while_condition'][0]
+        return next((s for s in adg.successors(node) if adg.nodes[s].get('name') == 'while_condition'), None)
     if ast_node_type == 'do_statement':
-        return [s for s in adg.successors(node) if adg.nodes[s].get('name') == 'do_condition'][0]
+        return next((s for s in adg.successors(node) if adg.nodes[s].get('name') == 'do_condition'), None)
     return None
 
 
 def mk_adg_labeled_statement(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
     assert node.type == 'labeled_statement'
     assert source is not None
-    # assert kwargs['source'] is not None
 
     label = get_identifier(node, source)
     labeled_statement: ASTNode = get_nodes_after_colon(node)[0]
     entry, exit = mk_adg(labeled_statement, adg, parent_adg_node, source)
 
-    # continue_nodes = list(adg._continue_nodes.keys())
-    # target = find_continue_target_node(adg, entry, labeled_statement.type)
-    # for node in continue_nodes:
-    #     if target is None:
-    #         break
-    #     if adg._continue_nodes[node] != label: 
-    #         continue
-        
-    #     adg.remove_edges_from([e for e in adg.out_edges(node)])
-    #     adg.add_edge(node, target, cflow=True)
-    #     del adg._continue_nodes[node]
-
     continue_target = find_continue_target_node(adg, entry, labeled_statement.type)
-    adg.rewire_continue_nodes(continue_target, label)
+    if continue_target is not None:
+        adg.rewire_continue_nodes(continue_target, label)
     adg.rewire_break_nodes(exit, label)
     return entry, exit
 

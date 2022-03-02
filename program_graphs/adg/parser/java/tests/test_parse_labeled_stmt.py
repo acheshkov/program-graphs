@@ -23,7 +23,7 @@ class TestParseLabeled(TestCase):
     def test_adg_labeled_loop_statement_break_to_label(self) -> None:
         parser = self.get_parser()
         bts = b"""
-            label: 
+            label:
             for (;;){
                 for (;;){
                     break label;
@@ -61,7 +61,7 @@ class TestParseLabeled(TestCase):
     def test_adg_labeled_loop_statement_continue_to_label(self) -> None:
         parser = self.get_parser()
         bts = b"""
-            label: 
+            label:
             for (;;){
                 for (;;){
                     continue label;
@@ -93,7 +93,6 @@ class TestParseLabeled(TestCase):
                 ('for_body_exit_1', 'for_update_1')
             ])
         ))
-       
 
     # def test_adg_labeled_statement_with_not_used_continue(self) -> None:
     #     parser = self.get_parser()

@@ -3,8 +3,10 @@ from typing import List, Optional
 
 Label = str
 
+
 def extract_code(start_byte: int, end_byte: int, code: bytes) -> str:
     return code[start_byte: end_byte].decode()
+
 
 def get_switch_label(node: ASTNode) -> ASTNode:
     label_nodes = [n for n in node.children if n.type == 'switch_label']
@@ -21,7 +23,8 @@ def get_nodes_after_colon(node: ASTNode) -> List[ASTNode]:
     colon_pos = [pos for pos, node in enumerate(node.children) if node.type == ':'][0]
     return node.children[colon_pos + 1:]  # type: ignore
 
-def get_identifier(node: ASTNode, source: bytes) -> Optional[Label]:
+
+def get_identifier(node: ASTNode, source: Optional[bytes]) -> Optional[Label]:
     # mb_source: Optional[bytes] = kwargs.get('source')
     if source is None:
         return None
