@@ -48,7 +48,6 @@ def mk_adg(
     parent_adg_node: Optional[NodeID] = None,
     source: bytes = None
 ) -> Tuple[EntryNode, ExitNode]:
-    print(node.type)
     if node.type == 'program':
         return mk_adg_block(node, adg, parent_adg_node, source)
 
