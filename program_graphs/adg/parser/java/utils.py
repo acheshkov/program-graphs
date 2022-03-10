@@ -1,7 +1,28 @@
 from program_graphs.types import ASTNode
 from typing import List, Optional
+from tree_sitter import Language, Parser  # type: ignore
+from program_graphs.utils import get_project_root
+import os
 
 Label = str
+
+
+def parse_ast_tree_sitter(source_code: str) -> ASTNode:
+    Language.build_library(
+        # Store the library in the `build` directory
+        'build/my-languages.so',
+
+        # Include one or more languages
+        [
+            os.path.join(get_project_root(), "tree-sitter-java")
+        ]
+    )
+    JAVA_LANGUAGE = Language('build/my-languages.so', 'java')
+    parser = Parser()
+    parser.set_language(JAVA_LANGUAGE)
+    source_code_bytes = bytes(source_code, 'utf-8')
+    ast = parser.parse(source_code_bytes)
+    return ast.root_node
 
 
 def extract_code(start_byte: int, end_byte: int, code: bytes) -> str:

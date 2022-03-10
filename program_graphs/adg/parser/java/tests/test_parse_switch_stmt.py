@@ -76,7 +76,8 @@ class TestParseSwitch(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
-                ("switch", "case_1"),
+                ("switch", "switch_condition"),
+                ("switch_condition", "case_1"),
                 ("case_1", "case_1_condition"),
                 ("case_1_condition", "a = 1;"),
                 ("a = 1;", 'case_1_exit'),
@@ -93,6 +94,29 @@ class TestParseSwitch(TestCase):
                 ("a = 0;", "default_exit"),
                 ("default_exit", 'exit')
 
+            ])
+        ))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_ast(),
+            nx.DiGraph([
+                ("switch", "case_1"),
+                ("switch", "case_2"),
+                ("switch", "condition"),
+                ("switch", "{"),
+                ("switch", "}"),
+                ("switch", "default"),
+                ("switch", "exit"),
+
+                ("case_1", "case_1_exit"),
+                ("case_1", "a = 1;"),
+                ('case_1', 'case_1_condition'),
+
+                ("case_2", "case_2_exit"),
+                ("case_2", "a = 2;"),
+                ('case_2', 'case_2_condition'),
+
+                ("default", "default_exit"),
+                ("default", "a = 0;")
             ])
         ))
 
@@ -115,28 +139,32 @@ class TestParseSwitch(TestCase):
         #     ])
         # ))
 
-    # def test_adg_switch_with_break(self) -> None:
-    #     parser = self.get_parser()
-    #     bts = b"""
-    #         switch (i) {
-    #             case 1: break;
-    #             case 2: break;
-    #         }
-    #     """
-    #     switch_node = parser.parse(bts).root_node.children[0]
-    #     assert switch_node.type == 'switch_expression'
-    #     cfg = mk_cfg_switch(switch_node)
-    #     self.assertTrue(nx.algorithms.is_isomorphic(
-    #         cfg,
-    #         nx.DiGraph([
-    #             ("case_1", "break_1"),
-    #             ("break_1", "exit"),
-    #             ("case_1", "case_2"),
-    #             ("case_2", "break_2"),
-    #             ("break_2", 'exit'),
-    #             ("case_2", "exit")
-    #         ])
-    #     ))
+    def test_adg_switch_with_break(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            switch (i) {
+                case 1:
+                    break;
+                    stmt();
+            }
+        """
+        switch_node = parser.parse(bts).root_node.children[0]
+        assert switch_node.type == 'switch_expression'
+        adg = mk_empty_adg()
+        mk_adg_switch(switch_node, adg)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(),
+            nx.DiGraph([
+                ("switch", "switch_condition"),
+                ("switch_condition", "case_1"),
+                ("case_1", "case_1_condition"),
+                ("case_1_condition", "break;"),
+                ("break;", 'case_1_exit'),
+                ("stmt();", 'case_1_exit'),
+                ("case_1_condition", "case_1_exit"),
+                ('case_1_exit', 'switch_exit')
+            ])
+        ))
 
 
 if __name__ == '__main__':

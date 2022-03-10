@@ -59,6 +59,7 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
+                ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
                 ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
@@ -89,6 +90,8 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
+                ('try-block-entry', 'finally-block-entry'),
+                ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
                 ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
@@ -99,6 +102,32 @@ class TestParseTryCatch(TestCase):
                 ('catch-body-exit', 'finally-block-entry'),
                 ('finally-block-entry', 'stmt3'),
                 ('stmt3', 'finally-block-exit')
+            ])
+        ))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_ast(),
+            nx.DiGraph([
+                ('try', 'try-block'),
+                ('try', 'catch-block'),
+                ('try', 'finally-block'),
+
+                ('try-block', '{_1'),
+                ('try-block', '}_1'),
+                ('try-block', 'stmt_1()'),
+                ('try-block', 'try-block-exit'),
+
+                ('catch-block', 'formal-parameters'),
+                ('catch-block', 'catch-block-entry'),
+                ('catch-block-entry', '{_2'),
+                ('catch-block-entry', '}_2'),
+                ('catch-block-entry', 'stmt_2()'),
+                ('catch-block-entry', 'catch-block-exit'),
+
+                ('finally-block', '{_3'),
+                ('finally-block', '}_3'),
+                ('finally-block', 'stmt_3()'),
+                ('finally-block', 'finally-block-exit')
+
             ])
         ))
 
@@ -156,6 +185,8 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
+                ('try-block-entry', 'finally-block-entry'),
+                ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
                 ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),

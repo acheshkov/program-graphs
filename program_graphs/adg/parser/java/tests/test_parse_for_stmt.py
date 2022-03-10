@@ -169,6 +169,22 @@ class TestParseFOR(TestCase):
                 ('body_exit', 'update')
             ])
         ))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_ast(), nx.DiGraph([
+                ('for', 'init'),
+                ('for', 'condition'),
+                ('for', 'exit'),
+                ('for', 'body'),
+                ('for', 'update'),
+                ('body', 'stmt_1'),
+                ('body', '}'),
+                ('body', '{'),
+                ('body', 'stmt_continue'),
+                ('body', 'stmt_2'),
+                ('body', 'body_exit'),
+
+            ])
+        ))
 
     # def test_cfg_nested_for_with_break(self) -> None:
     #     parser = self.get_parser()

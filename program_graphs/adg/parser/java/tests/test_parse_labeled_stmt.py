@@ -94,6 +94,50 @@ class TestParseLabeled(TestCase):
             ])
         ))
 
+    def test_adg_labeled_enhanced_loop_statement_continue_to_label(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            label: for (T s : ss){
+                continue label;
+            }
+        """
+        node = parser.parse(bts).root_node.children[0]
+        assert node.type == 'labeled_statement'
+        adg = mk_empty_adg()
+        mk_adg_labeled_statement(node, adg, source=bts)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(),
+            nx.DiGraph([
+                ('for', 'for_body'),
+                ('for_body', 'continue'),
+                ('continue', 'for'),
+                ('for_body_exit', 'for'),
+                ('for', 'for_exit')
+            ])
+        ))
+
+    def test_adg_labeled_enhanced_loop_statement_continue_without_label(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            label: for (T s : ss){
+                continue;
+            }
+        """
+        node = parser.parse(bts).root_node.children[0]
+        assert node.type == 'labeled_statement'
+        adg = mk_empty_adg()
+        mk_adg_labeled_statement(node, adg, source=bts)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(),
+            nx.DiGraph([
+                ('for', 'for_body'),
+                ('for_body', 'continue'),
+                ('continue', 'for'),
+                ('for_body_exit', 'for'),
+                ('for', 'for_exit')
+            ])
+        ))
+
     # def test_adg_labeled_statement_with_not_used_continue(self) -> None:
     #     parser = self.get_parser()
     #     bts = b"""

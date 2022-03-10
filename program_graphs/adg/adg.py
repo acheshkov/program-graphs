@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List, Mapping, Optional, Tuple, Any, Dict
 import networkx as nx  # type: ignore
 from tabulate import tabulate

@@ -1,7 +1,5 @@
 from typing import Optional, Tuple, List
 import os
-
-# from numpy import outer
 from program_graphs.adg.adg import ADG, mk_empty_adg
 from program_graphs.adg.parser.java.data_dependency import add_data_dependency_layer
 from tree_sitter import Language, Parser  # type: ignore
@@ -12,7 +10,7 @@ from program_graphs.utils.graph import filter_nodes
 from program_graphs.adg.parser.java.utils import get_switch_block_label, get_switch_label, get_nodes_after_colon, get_identifier
 
 
-def parse(source_code: str) -> ADG:
+def parse_ast_tree_sitter(source_code: str) -> ASTNode:
     Language.build_library(
         # Store the library in the `build` directory
         'build/my-languages.so',
@@ -27,7 +25,12 @@ def parse(source_code: str) -> ADG:
     parser.set_language(JAVA_LANGUAGE)
     source_code_bytes = bytes(source_code, 'utf-8')
     ast = parser.parse(source_code_bytes)
-    return parse_from_ast(ast.root_node, source_code_bytes)
+    return ast.root_node
+
+def parse(source_code: str) -> ADG:
+    ast = parse_ast_tree_sitter(source_code)
+    source_code_bytes = bytes(source_code, 'utf-8')
+    return parse_from_ast(ast, source_code_bytes)
 
 
 def parse_from_ast(ast: ASTNode, source_code_bytes: bytes) -> ADG:
@@ -48,6 +51,7 @@ def mk_adg(
     parent_adg_node: Optional[NodeID] = None,
     source: bytes = None
 ) -> Tuple[EntryNode, ExitNode]:
+    # print(node.type)
     if node.type == 'program':
         return mk_adg_block(node, adg, parent_adg_node, source)
 
@@ -101,10 +105,17 @@ def mk_adg(
 
 
 def mk_adg_method_declaration(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
+    node_method_entry = adg.add_ast_node(ast_node=node)
+    node_method_exit = adg.add_node(name='method_exit')
     formal_parameters = [n for n in node.child_by_field_name('parameters').children if n.type == 'formal_parameter']
     params_and_body= [mk_adg(n, adg) for n in formal_parameters] + [mk_adg(node.child_by_field_name('body'), adg, source=source)]
-    entry, exit = combine_cf_linear(params_and_body, adg, parent_adg_node)
-    return entry, exit
+    entry, exit = combine_cf_linear(params_and_body, adg, node_method_entry)
+    adg.add_edge(node_method_entry, entry, cflow=True)
+    adg.add_edge(exit, node_method_exit, cflow=True)
+    adg.add_edge(node_method_entry, node_method_exit, syntax=True, exit=True)
+    if parent_adg_node is not None:
+        adg.add_edge(parent_adg_node, node_method_entry, syntax=True)
+    return node_method_entry, node_method_exit
 
 
 def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
@@ -112,7 +123,7 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
     if ast_node_body.type == ';':
         return mk_default(node, adg, parent_adg_node)
 
-    node_for_entry = adg.add_ast_node(ast_node=node)
+    node_for_entry = adg.add_ast_node(ast_node=node, name='for_enhanced')
     node_for_exit = adg.add_node(name='for_exit')
     node_body_entry, node_body_exit = mk_adg(ast_node_body, adg, source=source)
     if parent_adg_node is not None:
@@ -121,6 +132,9 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
     adg.add_edge(node_for_entry, node_body_entry, syntax=True, cdep=True, cflow=True)
     adg.add_edge(node_for_entry, node_for_exit, syntax=True, cdep=True, cflow=True, exit=True)
     adg.add_edge(node_body_exit, node_for_entry, cflow=True)
+
+    adg.rewire_continue_nodes(node_for_entry)
+    adg.rewire_break_nodes(node_for_exit)
 
     return node_for_entry, node_for_exit
 
@@ -145,7 +159,7 @@ def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None
     adg.add_edge(node_body_exit, node_update, cflow=True)
     adg.add_edge(node_update, node_condition, cflow=True, back=True)
     adg.add_edge(node_condition, node_for_exit, cflow=True)
-    adg.add_edge(node_condition, node_update, cdep=True)
+    # adg.add_edge(node_condition, node_update, cdep=True)
 
     adg.rewire_continue_nodes(node_update)
     adg.rewire_break_nodes(node_for_exit)
@@ -257,12 +271,23 @@ def mk_adg_if(
 def mk_adg_switch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes=None) -> Tuple[EntryNode, ExitNode]:
     node_switch_entry = adg.add_ast_node(ast_node=node, name='switch')
     node_switch_exit = adg.add_node(name='switch_exit')
+    node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='switch_condition')
+    # TODO: add not named syntax nodes { }
+
+    for _node in node.child_by_field_name('body').children:
+        if not _node.is_named or _node.type in ['line_comment', 'block_comment']:
+            syntax_node = adg.add_ast_node(_node)
+            adg.add_edge(node_switch_entry, syntax_node, syntax=True)
+
     groups: List[ASTNode] = [n for n in node.child_by_field_name('body').children if n.type == 'switch_block_statement_group']
     case_groups = [mk_adg_switch_case_group(g, adg) for g in groups if get_switch_block_label(g) == 'case']
     default_groups = [mk_adg_switch_default_group(g, adg) for g in groups if get_switch_block_label(g) == 'default']
     block_entry, block_exit = combine_cf_linear(case_groups + default_groups, adg, node_switch_entry)
-    adg.add_edge(node_switch_entry, block_entry, cflow=True)
+    adg.add_edge(node_switch_entry, node_condition, cflow=True, syntax=True)
+    adg.add_edge(node_condition, block_entry, cflow=True)
     adg.add_edge(block_exit, node_switch_exit, cflow=True)
+    # adg.add_edge(node_condition, node_switch_exit, cflow=True)
+    adg.add_edge(node_switch_entry, node_switch_exit, syntax=True, exit=True)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_switch_entry, syntax=True)
     return node_switch_entry, node_switch_exit
@@ -287,22 +312,23 @@ def mk_adg_switch_case_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[
         (case_exit, node_exit),
         (condition, node_exit)
     ], cflow=True)
-    adg.add_edge(node_entry, node_exit, syntax=True)
-
+    adg.add_edge(node_entry, condition, syntax=True)
+    adg.add_edge(node_entry, node_exit, syntax=True, exit=True)
+    adg.rewire_break_nodes(node_exit)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
     return node_entry, node_exit
 
 def mk_adg_switch_default_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
     assert node.type == 'switch_block_statement_group'
-    node_entry = adg.add_ast_node(ast_node=node, name='switch_case')
-    node_exit = adg.add_node(name='switch_case_exit')
+    node_entry = adg.add_ast_node(ast_node=node, name='switch_default')
+    node_exit = adg.add_node(name='switch_default_exit')
     
     case_entry, case_exit = mk_adg_switch_block_group_body(node, adg, node_entry)
-    adg.add_edge(node_entry, node_exit, syntax=True)
+    adg.add_edge(node_entry, node_exit, syntax=True, exit=True)
     adg.add_edge(node_entry, case_entry, cflow=True)
     adg.add_edge(case_exit, node_exit, cflow=True)
-
+    adg.rewire_break_nodes(node_exit)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
     return node_entry, node_exit
@@ -314,6 +340,8 @@ def find_continue_target_node(adg: ADG, node: NodeID, ast_node_type: str) -> Opt
         return next((s for s in adg.successors(node) if adg.nodes[s].get('name') == 'while_condition'), None)
     if ast_node_type == 'do_statement':
         return next((s for s in adg.successors(node) if adg.nodes[s].get('name') == 'do_condition'), None)
+    if ast_node_type == 'enhanced_for_statement':
+        return node
     return None
 
 
@@ -364,7 +392,7 @@ def mk_adg_return(
     adg: ADG,
     parent_adg_node: Optional[NodeID] = None
 ) -> Tuple[EntryNode, ExitNode]:
-    node_entry = adg.add_ast_node(ast_node=node)
+    node_entry = adg.add_ast_node(ast_node=node, name='return')
     adg.push_return_node(node_entry)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
@@ -398,7 +426,7 @@ def mk_adg_many_catch_blocks(node: ASTNode, adg: ADG, syntax_parent: NodeID, sou
 def mk_adg_try_block(node: ASTNode, adg: ADG, syntax_parent: NodeID, source: bytes = None) -> Tuple[Optional[EntryNode], Optional[ExitNode]]:
     resources = filter_nodes(node.child_by_field_name('resources'), ['resource'])
     if len(resources) == 0:
-        return mk_adg(node.child_by_field_name('body'), adg, source=source)
+        return mk_adg(node.child_by_field_name('body'), adg, syntax_parent, source=source)
     
     resources_entry, resources_exit = combine_cf_linear([mk_adg(r, adg, source=source) for r in resources], adg, syntax_parent)
     try_entry, try_exit = mk_adg(node.child_by_field_name('body'), adg, syntax_parent, source)
@@ -421,6 +449,8 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
         return try_catch_node, try_exit  # type: ignore
 
     if mb_catches_entry is not None and mb_final_entry is None:
+        # adg.add_edge(parent_adg_node, mb_catches_entry, syntax=True)
+        adg.add_edge(try_entry, mb_catches_entry, cflow=True)
         adg.add_edge(try_exit, mb_catches_entry, cflow=True)
         return try_catch_node, mb_catches_exit  # type: ignore
 
@@ -429,7 +459,9 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
         return try_catch_node, mb_final_exit  # type: ignore
 
     adg.add_edges_from([
+        (try_entry, mb_catches_entry),
         (try_exit, mb_catches_entry),
+        (try_entry, mb_final_entry),
         (mb_catches_exit, mb_final_entry)
     ], cflow=True)
 

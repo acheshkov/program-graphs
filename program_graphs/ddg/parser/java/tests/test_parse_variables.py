@@ -72,11 +72,12 @@ class TestParseVariables(TestCase):
             a++;
             b+=1;
             --c;
+            d |= 2;
         '''
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        self.assertEqual(read_vars, set(['a', 'b', 'c']))
-        self.assertEqual(write_vars, set(['a', 'b', 'c']))
+        self.assertEqual(read_vars, set(['a', 'b', 'c', 'd']))
+        self.assertEqual(write_vars, set(['a', 'b', 'c', 'd']))
 
     def test_variables_writes_declaration_for(self) -> None:
         code = b'''
