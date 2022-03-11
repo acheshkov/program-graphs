@@ -6,7 +6,7 @@ from program_graphs.ddg.parser.java.utils import VarName, VarType, Variable, rea
 from program_graphs.adg.adg import ADG
 from sys import setrecursionlimit
 
-setrecursionlimit(5000)
+setrecursionlimit(100000)
 
 VarTable = Dict[VarName, Set[NodeID]]  # Mapping from variable name to list of nodes that wrote this variable recently
 
