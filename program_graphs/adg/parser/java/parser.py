@@ -484,7 +484,7 @@ def mk_adg_block(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = No
     if len(adgs) == 0:
         return node_entry, node_entry
 
-    adg.add_edge(node_entry, node_exit, syntax=True, cdep=True)
+    adg.add_edge(node_entry, node_exit, syntax=True, cdep=True, exit=True)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
     entry, exit = combine_cf_linear(adgs, adg, node_entry)

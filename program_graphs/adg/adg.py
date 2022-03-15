@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import List, Mapping, Optional, Tuple, Any, Dict
 import networkx as nx  # type: ignore
 from tabulate import tabulate
@@ -75,15 +74,9 @@ class ADG(nx.DiGraph):
         return 1
 
     def get_exit_node(self) -> NodeID:
-        exit_candidates_l1: List[NodeID] = [n for n in self.nodes if self.out_degree(n) == 0 and self.in_degree(n) > 0]
-        exit_candidates_l2 = []
-        for candidate in exit_candidates_l1:
-            if len([1 for (_, _, cflow) in self.in_edges(candidate, data='cflow') if cflow is True]) == 0:
-                continue
-            exit_candidates_l2.append(candidate)
-
-        assert len(exit_candidates_l2) == 1
-        return exit_candidates_l2[0]
+        entry = self.get_entry_node()
+        [exit] = [n for (_, n, is_exit) in self.out_edges(entry, data='exit') if is_exit]
+        return exit  # type: ignore
 
     def wire_return_nodes(self) -> None:
         if len(self._return_nodes) == 0:

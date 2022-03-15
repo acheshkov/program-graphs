@@ -35,7 +35,8 @@ class TestParseLabeled(TestCase):
         adg = mk_empty_adg()
         mk_adg_labeled_statement(node, adg, source=bts)
         cfg = adg.to_cfg()
-        self.assertEqual(cfg.in_degree(cfg.get_exit_node()), 2)
+        self.assertEqual(cfg.in_degree(adg.get_exit_node()), 2)
+
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([

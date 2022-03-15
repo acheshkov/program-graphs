@@ -41,6 +41,17 @@ class TestParseWhile(TestCase):
                 ('condition', 'exit')
             ])
         ))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_ast(), nx.DiGraph([
+                ('while', 'condition'),
+                ('while', 'body'),
+                ('while', 'exit'),
+                ('body', 'i++'),
+                ('body', '}'),
+                ('body', '{'),
+                ('body', 'body_end')
+            ])
+        ))
 
         # self.assertTrue(nx.algorithms.is_isomorphic(
         #     adg.to_cdg(), nx.DiGraph([
