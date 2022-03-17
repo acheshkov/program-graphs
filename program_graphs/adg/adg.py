@@ -85,7 +85,7 @@ class ADG(nx.DiGraph):
         while len(self._return_nodes) > 0:
             return_node = self._return_nodes.pop()
             self.remove_edges_from([(a, b) for (a, b, cflow) in self.out_edges(return_node, data='cflow') if cflow is True])
-            self.add_edge(return_node, exit_node, cflow=True)
+            self.add_edge(return_node, exit_node, cflow=True, program_return=True)
 
     def to_cfg(self) -> nx.DiGraph:
         copy = self.copy()

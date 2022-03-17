@@ -121,7 +121,7 @@ def mk_adg_method_declaration(node: ASTNode, adg: ADG, parent_adg_node: Optional
 def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
     ast_node_body = node.child_by_field_name('body')
     if ast_node_body.type == ';':
-        return mk_default(node, adg, parent_adg_node)
+        return mk_default(node, adg, parent_adg_node, name='for_enhanced')
 
     node_for_entry = adg.add_ast_node(ast_node=node, name='for_enhanced')
     node_for_exit = adg.add_node(name='for_exit')
@@ -140,7 +140,7 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
 
 
 def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
-    node_for_entry = adg.add_ast_node(ast_node=node)
+    node_for_entry = adg.add_ast_node(ast_node=node, name='for')
     node_init = adg.add_ast_node(ast_node=node.child_by_field_name('init'), name='for_init')
     node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='for_condition')
     node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('body'), adg, source=source)
@@ -173,7 +173,7 @@ def mk_adg_while(
     parent_adg_node: Optional[NodeID] = None,
     source: bytes=None
 ) -> Tuple[EntryNode, ExitNode]:
-    node_while_entry = adg.add_ast_node(ast_node=node)
+    node_while_entry = adg.add_ast_node(ast_node=node, name='while')
     node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='while_condition')
     node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('body'), adg, source=source)
     node_while_exit = adg.add_node(name='while_exit')
@@ -216,7 +216,7 @@ def mk_adg_do_while(
     parent_adg_node: Optional[NodeID] = None,
     source: bytes = None
 ) -> Tuple[EntryNode, ExitNode]:
-    node_while_entry = adg.add_ast_node(ast_node=node)
+    node_while_entry = adg.add_ast_node(ast_node=node, name='do_while')
     node_condition = adg.add_ast_node(ast_node=node.child_by_field_name('condition'), name='do_condition')
     node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('body'), adg, source=source)
     node_while_exit = adg.add_node(name='do_while_exit')
@@ -436,7 +436,7 @@ def mk_adg_try_block(node: ASTNode, adg: ADG, syntax_parent: NodeID, source: byt
   
 
 def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
-    try_catch_node = adg.add_ast_node(node, name='try-catch')
+    try_catch_node = adg.add_ast_node(node, name='try_catch')
     try_entry, try_exit = mk_adg_try_block(node, adg, try_catch_node, source)
     mb_final_entry, mb_final_exit = mk_adg_finally_block(node, adg, try_catch_node, source)
     mb_catches_entry, mb_catches_exit = mk_adg_many_catch_blocks(node, adg, try_catch_node, source)
@@ -523,8 +523,13 @@ def mk_variable_declaration(
     return node_id, node_id
 
 
-def mk_default(node: Optional[ASTNode], adg: ADG, parent_adg_node: Optional[NodeID] = None) -> Tuple[EntryNode, ExitNode]:
-    node_id = adg.add_ast_node(ast_node=node)
+def mk_default(
+    node: Optional[ASTNode],
+    adg: ADG,
+    parent_adg_node: Optional[NodeID] = None,
+    name: Optional[str] = None
+) -> Tuple[EntryNode, ExitNode]:
+    node_id = adg.add_ast_node(ast_node=node, name=name)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_id, syntax=True)
     return node_id, node_id
