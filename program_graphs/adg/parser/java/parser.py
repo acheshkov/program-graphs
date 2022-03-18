@@ -11,16 +11,17 @@ from program_graphs.adg.parser.java.utils import get_switch_block_label, get_swi
 
 
 def parse_ast_tree_sitter(source_code: str) -> ASTNode:
+    bin_storage_path = os.path.join(get_project_root(), 'build/my-languages.so')
     Language.build_library(
         # Store the library in the `build` directory
-        'build/my-languages.so',
+        bin_storage_path,
 
         # Include one or more languages
         [
             os.path.join(get_project_root(), "tree-sitter-java")
         ]
     )
-    JAVA_LANGUAGE = Language('build/my-languages.so', 'java')
+    JAVA_LANGUAGE = Language(bin_storage_path, 'java')
     parser = Parser()
     parser.set_language(JAVA_LANGUAGE)
     source_code_bytes = bytes(source_code, 'utf-8')
