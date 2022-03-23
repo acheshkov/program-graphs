@@ -35,7 +35,6 @@ class TestParseLabeled(TestCase):
         adg = mk_empty_adg()
         mk_adg_labeled_statement(node, adg, source=bts)
         cfg = adg.to_cfg()
-        print(adg)
         self.assertEqual(cfg.in_degree(adg.get_exit_node()), 2)
 
         self.assertTrue(nx.algorithms.is_isomorphic(
@@ -153,6 +152,49 @@ class TestParseLabeled(TestCase):
                 ('continue', 'for'),
                 ('for_body_exit', 'for'),
                 ('for', 'for_exit')
+            ])
+        ))
+
+    def test_adg_labeled_enhanced_loop_with_swtich_and_break(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            label: for (;;){
+                switch () {
+                    case 1:
+                        break label;
+                    case 2:
+                        break;
+                }
+            }
+        """
+        node = parser.parse(bts).root_node.children[0]
+        assert node.type == 'labeled_statement'
+        adg = mk_empty_adg()
+        mk_adg_labeled_statement(node, adg, source=bts)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(),
+            nx.DiGraph([
+                ('labeled_stmt', 'for'),
+                ('for', 'for_init'),
+                ('for_init', 'for_condition'),
+                ('for_condition', 'for_body'),
+                ('for_condition', 'for_exit'),
+                ('for_body', 'switch'),
+                ('switch', 'switch_condition'),
+                ('switch_condition', 'case_1'),
+                ('case_1', 'case_1_condition'),
+                ('case_1_condition', 'break label'),
+                ('case_1_condition', 'case_1_exit'),
+                ('break label', 'for_exit'),
+                ('case_1_exit', 'case_2'),
+                ('case_2', 'case_2_condition'),
+                ('case_2_condition', 'break'),
+                ('case_2_condition', 'case_2_exit'),
+                ('break', 'case_2_exit'),
+                ('case_2_exit', 'switch_exit'),
+                ('switch_exit', 'for_body_exit'),
+                ('for_body_exit', 'for_update'),
+                ('for_update', 'for_condition')
             ])
         ))
 

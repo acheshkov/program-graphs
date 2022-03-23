@@ -283,8 +283,8 @@ def mk_adg_switch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = N
             adg.add_edge(node_switch_entry, syntax_node, syntax=True)
 
     groups: List[ASTNode] = [n for n in node.child_by_field_name('body').children if n.type == 'switch_block_statement_group']
-    case_groups = [mk_adg_switch_case_group(g, adg) for g in groups if get_switch_block_label(g) == 'case']
-    default_groups = [mk_adg_switch_default_group(g, adg) for g in groups if get_switch_block_label(g) == 'default']
+    case_groups = [mk_adg_switch_case_group(g, adg, source=source) for g in groups if get_switch_block_label(g) == 'case']
+    default_groups = [mk_adg_switch_default_group(g, adg, source=source) for g in groups if get_switch_block_label(g) == 'default']
     block_entry, block_exit = combine_cf_linear(case_groups + default_groups, adg, node_switch_entry)
     adg.add_edge(node_switch_entry, node_condition, cflow=True, syntax=True)
     adg.add_edge(node_condition, block_entry, cflow=True)
@@ -299,7 +299,7 @@ def mk_adg_switch_block_group_body(node: ASTNode, adg: ADG, syntax_parent: ASTNo
     nodes_after_colon = [mk_adg(node, adg, source=source) for node in get_nodes_after_colon(node)]
     if len(nodes_after_colon) == 0:
         node = adg.add_node(name='empty-case')
-        return node, node
+        nodes_after_colon = [(node, node)]
     return combine_cf_linear(nodes_after_colon, adg, syntax_parent)
 
 def mk_adg_switch_case_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
@@ -308,7 +308,7 @@ def mk_adg_switch_case_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[
     node_exit = adg.add_node(name='switch_case_exit')
     
     condition = adg.add_ast_node(ast_node=get_switch_label(node), name='case_condition')
-    case_entry, case_exit = mk_adg_switch_block_group_body(node, adg, node_entry)
+    case_entry, case_exit = mk_adg_switch_block_group_body(node, adg, node_entry, source=source)
     adg.add_edges_from([
         (node_entry, condition),
         (condition, case_entry),
@@ -327,7 +327,7 @@ def mk_adg_switch_default_group(node: ASTNode, adg: ADG, parent_adg_node: Option
     node_entry = adg.add_ast_node(ast_node=node, name='switch_default')
     node_exit = adg.add_node(name='switch_default_exit')
     
-    case_entry, case_exit = mk_adg_switch_block_group_body(node, adg, node_entry)
+    case_entry, case_exit = mk_adg_switch_block_group_body(node, adg, node_entry, source)
     adg.add_edge(node_entry, node_exit, syntax=True, exit=True)
     adg.add_edge(node_entry, case_entry, cflow=True)
     adg.add_edge(case_exit, node_exit, cflow=True)
