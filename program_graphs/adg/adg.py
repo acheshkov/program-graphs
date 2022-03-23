@@ -52,20 +52,24 @@ class ADG(nx.DiGraph):
         del self._break_nodes[first_key]
         return first_key, first_value
 
-    def rewire_break_nodes(self, target_node: NodeID, label: Optional[Label] = None) -> None:
+    def rewire_break_nodes(self, target_node: NodeID, min_node_id: NodeID, label: Optional[Label] = None) -> None:
         break_nodes = list(self._break_nodes.keys())
         for node in break_nodes:
             if self._break_nodes[node] != label:
                 continue
+            if node < min_node_id:
+                continue  # we use the property that nodes are enumarated succesively
             self.remove_edges_from([e for e in self.out_edges(node)])
             self.add_edge(node, target_node, cflow=True)
             del self._break_nodes[node]
 
-    def rewire_continue_nodes(self, target_node: NodeID, label: Optional[Label] = None) -> None:
+    def rewire_continue_nodes(self, target_node: NodeID, min_node_id: NodeID, label: Optional[Label] = None) -> None:
         continue_nodes = list(self._continue_nodes.keys())
         for node in continue_nodes:
             if self._continue_nodes[node] != label:
                 continue
+            if node < min_node_id:
+                continue  # we use the property that nodes are enumarated succesively
             self.remove_edges_from([e for e in self.out_edges(node)])
             self.add_edge(node, target_node, cflow=True)
             del self._continue_nodes[node]

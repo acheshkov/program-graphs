@@ -102,6 +102,9 @@ def mk_adg(
     if node.type == 'labeled_statement':
         return mk_adg_labeled_statement(node, adg, parent_adg_node, source)
 
+    if node.type == 'synchronized_statement':
+        return mk_adg_synchronized(node, adg, parent_adg_node, source)
+
     return mk_default(node, adg, parent_adg_node)
 
 
@@ -134,8 +137,8 @@ def mk_adg_enhanced_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeI
     adg.add_edge(node_for_entry, node_for_exit, syntax=True, cdep=True, cflow=True, exit=True)
     adg.add_edge(node_body_exit, node_for_entry, cflow=True)
 
-    adg.rewire_continue_nodes(node_for_entry)
-    adg.rewire_break_nodes(node_for_exit)
+    adg.rewire_continue_nodes(node_for_entry, min_node_id=node_for_entry)
+    adg.rewire_break_nodes(node_for_exit, min_node_id=node_for_entry)
 
     return node_for_entry, node_for_exit
 
@@ -161,9 +164,8 @@ def mk_adg_for(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None
     adg.add_edge(node_update, node_condition, cflow=True, back=True)
     adg.add_edge(node_condition, node_for_exit, cflow=True)
     # adg.add_edge(node_condition, node_update, cdep=True)
-
-    adg.rewire_continue_nodes(node_update)
-    adg.rewire_break_nodes(node_for_exit)
+    adg.rewire_continue_nodes(node_update, min_node_id=node_for_entry)
+    adg.rewire_break_nodes(node_for_exit, min_node_id=node_for_entry)
 
 
     return node_for_entry, node_for_exit
@@ -191,8 +193,8 @@ def mk_adg_while(
     adg.add_edge(node_body_exit, node_condition, cflow=True)
 
 
-    adg.rewire_continue_nodes(node_condition)
-    adg.rewire_break_nodes(node_while_exit)
+    adg.rewire_continue_nodes(node_condition, min_node_id=node_while_entry)
+    adg.rewire_break_nodes(node_while_exit, min_node_id=node_while_entry)
     # while continue_node := adg.pop_continue_node():
     #     adg.remove_edges_from([e for e in adg.out_edges(continue_node)])
     #     adg.add_edge(continue_node, node_condition, cflow=True)
@@ -234,8 +236,8 @@ def mk_adg_do_while(
     adg.add_edge(node_body_exit, node_condition, cflow=True)
 
 
-    adg.rewire_continue_nodes(node_condition)
-    adg.rewire_break_nodes(node_while_exit)
+    adg.rewire_continue_nodes(node_condition, min_node_id=node_while_entry)
+    adg.rewire_break_nodes(node_while_exit, min_node_id=node_while_entry)
     return node_while_entry, node_while_exit
 
 
@@ -315,7 +317,7 @@ def mk_adg_switch_case_group(node: ASTNode, adg: ADG, parent_adg_node: Optional[
     ], cflow=True)
     adg.add_edge(node_entry, condition, syntax=True)
     adg.add_edge(node_entry, node_exit, syntax=True, exit=True)
-    adg.rewire_break_nodes(node_exit)
+    adg.rewire_break_nodes(node_exit, min_node_id=node_entry)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
     return node_entry, node_exit
@@ -329,7 +331,7 @@ def mk_adg_switch_default_group(node: ASTNode, adg: ADG, parent_adg_node: Option
     adg.add_edge(node_entry, node_exit, syntax=True, exit=True)
     adg.add_edge(node_entry, case_entry, cflow=True)
     adg.add_edge(case_exit, node_exit, cflow=True)
-    adg.rewire_break_nodes(node_exit)
+    adg.rewire_break_nodes(node_exit, min_node_id=node_entry)
     if parent_adg_node is not None:
         adg.add_edge(parent_adg_node, node_entry, syntax=True)
     return node_entry, node_exit
@@ -350,15 +352,20 @@ def mk_adg_labeled_statement(node: ASTNode, adg: ADG, parent_adg_node: Optional[
     assert node.type == 'labeled_statement'
     assert source is not None
 
+    node_entry = adg.add_ast_node(node, name='labeled_statement')
+
     label = get_identifier(node, source)
     labeled_statement: ASTNode = get_nodes_after_colon(node)[0]
-    entry, exit = mk_adg(labeled_statement, adg, parent_adg_node, source)
+    entry, exit = mk_adg(labeled_statement, adg, node_entry, source)
+    # node_label = adg.add_ast_node(node.children[0], name='for_label')
+    adg.add_edge(node_entry, entry, syntax=True, cflow=True)
+    adg.add_edge(node_entry, exit, exit=True)
 
     continue_target = find_continue_target_node(adg, entry, labeled_statement.type)
     if continue_target is not None:
-        adg.rewire_continue_nodes(continue_target, label)
-    adg.rewire_break_nodes(exit, label)
-    return entry, exit
+        adg.rewire_continue_nodes(continue_target, min_node_id=entry, label=label)
+    adg.rewire_break_nodes(exit, min_node_id=entry, label=label)
+    return node_entry, exit
 
 def mk_adg_continue(
     node: ASTNode,
@@ -452,7 +459,7 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
     if mb_catches_entry is not None and mb_final_entry is None:
         # adg.add_edge(parent_adg_node, mb_catches_entry, syntax=True)
         adg.add_edge(try_entry, mb_catches_entry, cflow=True)
-        adg.add_edge(try_exit, mb_catches_entry, cflow=True)
+        adg.add_edge(try_exit, mb_catches_exit, cflow=True)
         return try_catch_node, mb_catches_exit  # type: ignore
 
     if mb_catches_entry is None and mb_final_entry is not None:
@@ -461,8 +468,8 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
 
     adg.add_edges_from([
         (try_entry, mb_catches_entry),
-        (try_exit, mb_catches_entry),
-        (try_entry, mb_final_entry),
+        # (try_exit, mb_catches_entry),
+        (try_exit, mb_final_entry),
         (mb_catches_exit, mb_final_entry)
     ], cflow=True)
 
@@ -522,6 +529,15 @@ def mk_variable_declaration(
         adg.add_edge(parent_adg_node, node_id, syntax=True)
 
     return node_id, node_id
+
+
+def mk_adg_synchronized(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] = None, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
+    node_entry = adg.add_ast_node(ast_node=node, name='synchronized')
+    node_body_entry, node_body_exit = mk_adg(node.child_by_field_name('body'), adg, node_entry, source=source)
+    adg.add_edge(node_entry, node_body_entry, syntax=True, cflow=True)
+    if parent_adg_node is not None:
+        adg.add_edge(parent_adg_node, node_entry, syntax=True)
+    return node_entry, node_body_exit
 
 
 def mk_default(

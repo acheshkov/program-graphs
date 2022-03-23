@@ -186,6 +186,74 @@ class TestParseFOR(TestCase):
             ])
         ))
 
+    def test_adg_nested_for_continue_inside_outer_for(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                continue;
+                for (int j = 0; j < 10; j++) {
+                }
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        adg = mk_empty_adg()
+        mk_adg_for(for_node, adg)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(), nx.DiGraph([
+                ('for_outer', 'int i = 0'),
+                ('int i = 0', 'i < 10'),
+                ('i < 10', 'for_outer_exit'),
+                ('i < 10', 'for_outer_body'),
+                ('for_outer_body', 'continue'),
+                ('continue', 'i++'),
+                ('for_outer_body_exit', 'i++'),
+                ('i++', 'i < 10'),
+                ('for_inner', 'int j = 0'),
+                ('int j = 0', 'j < 10'),
+                ('j < 10', 'for_inner_exit'),
+                ('j < 10', 'for_inner_body'),
+                ('for_inner_body', 'j++'),
+                ('j++', 'j < 10'),
+                ('for_inner_exit', 'for_outer_body_exit')
+            ])
+        ))
+
+    def test_adg_nested_for_continue_inside_inner_for(self) -> None:
+        parser = self.get_parser()
+        bts = b"""
+            for (int i = 0; i < 10; i++) {
+                for (int j = 0; j < 10; j++) {
+                    continue;
+                }
+            }
+        """
+        for_node = parser.parse(bts).root_node.children[0]
+        assert for_node.type == 'for_statement'
+        adg = mk_empty_adg()
+        mk_adg_for(for_node, adg)
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_cfg(), nx.DiGraph([
+                ('for_outer', 'int i = 0'),
+                ('int i = 0', 'i < 10'),
+                ('i < 10', 'for_outer_exit'),
+                ('i < 10', 'for_outer_body'),
+                ('for_outer_body', 'for_inner'),
+                ('for_outer_body_exit', 'i++'),
+                ('i++', 'i < 10'),
+
+                ('for_inner', 'int j = 0'),
+                ('int j = 0', 'j < 10'),
+                ('j < 10', 'for_inner_exit'),
+                ('j < 10', 'for_inner_body'),
+                ('for_inner_body', 'continue'),
+                ('continue', 'j++'),
+                ('for_inner_body_exit', 'j++'),
+                ('j++', 'j < 10'),
+                ('for_inner_exit', 'for_outer_body_exit')
+            ])
+        ))
+
     # def test_cfg_nested_for_with_break(self) -> None:
     #     parser = self.get_parser()
     #     bts = b"""

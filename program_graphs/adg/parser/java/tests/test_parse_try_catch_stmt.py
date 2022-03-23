@@ -35,6 +35,7 @@ class TestParseTryCatch(TestCase):
             adg.to_cfg(),
             nx.DiGraph([
                 ('try', 'try-block-empty'),
+                ('try-block-empty', 'catch-body-empty'),
                 ('try-block-empty', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-empty')
@@ -61,7 +62,7 @@ class TestParseTryCatch(TestCase):
                 ('try-block-entry', 'stmt_1'),
                 ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
-                ('try-block-exit', 'catch-block'),
+                ('try-block-exit', 'catch-body-exit'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-exit'),
                 ('formal-parameters', 'catch-body-entry'),
@@ -90,10 +91,10 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
-                ('try-block-entry', 'finally-block-entry'),
+                ('try-block-exit', 'finally-block-entry'),
                 ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
-                ('try-block-exit', 'catch-block'),
+                # ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-entry'),
                 ('formal-parameters', 'catch-body-exit'),
@@ -185,10 +186,10 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
-                ('try-block-entry', 'finally-block-entry'),
+                ('try-block-exit', 'finally-block-entry'),
                 ('try-block-entry', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
-                ('try-block-exit', 'catch-block'),
+                # ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-entry'),
                 ('formal-parameters', 'catch-body-exit'),

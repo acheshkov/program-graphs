@@ -35,11 +35,13 @@ class TestParseLabeled(TestCase):
         adg = mk_empty_adg()
         mk_adg_labeled_statement(node, adg, source=bts)
         cfg = adg.to_cfg()
+        print(adg)
         self.assertEqual(cfg.in_degree(adg.get_exit_node()), 2)
 
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
+                ('labeled_statement', 'for_1'),
                 ('for_1', 'for_init_1'),
                 ('for_init_1', 'for_condition_1'),
                 ('for_condition_1', 'for_exit_1'),
@@ -76,6 +78,7 @@ class TestParseLabeled(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
+                ('labeled_stmt', 'for_1'),
                 ('for_1', 'for_init_1'),
                 ('for_init_1', 'for_condition_1'),
                 ('for_condition_1', 'for_exit_1'),
@@ -109,10 +112,23 @@ class TestParseLabeled(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
+                ('labeled_stmt', 'for'),
                 ('for', 'for_body'),
                 ('for_body', 'continue'),
                 ('continue', 'for'),
                 ('for_body_exit', 'for'),
+                ('for', 'for_exit')
+            ])
+        ))
+        self.assertTrue(nx.algorithms.is_isomorphic(
+            adg.to_ast(),
+            nx.DiGraph([
+                ('labeled_stmt', 'for'),
+                ('for', 'for_body'),
+                ('for_body', 'continue'),
+                ('for_body', '}'),
+                ('for_body', '{'),
+                ('for_body', 'for_body_exit'),
                 ('for', 'for_exit')
             ])
         ))
@@ -131,6 +147,7 @@ class TestParseLabeled(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
+                ('labeled_stmt', 'for'),
                 ('for', 'for_body'),
                 ('for_body', 'continue'),
                 ('continue', 'for'),
