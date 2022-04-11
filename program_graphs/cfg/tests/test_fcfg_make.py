@@ -1,7 +1,7 @@
 
 from unittest import TestCase, main
 import networkx as nx  # type: ignore
-from program_graphs import CFG
+from program_graphs.cfg.cfg import CFG
 from program_graphs.cfg.fcfg import mk_fcfg_from_cfg
 
 

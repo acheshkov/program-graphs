@@ -49,6 +49,15 @@ class TestParseVariables(TestCase):
         self.assertEqual(read_vars, set(['c']))
         self.assertEqual(write_vars, set(['a']))
 
+    def test_variables_empty_parenthesized_expression(self) -> None:
+        code = b'''
+            if () {}
+        '''
+        ast = self.parse(code)
+        read_vars, write_vars = read_write_variables(ast, code)
+        self.assertEqual(read_vars, set([]))
+        self.assertEqual(write_vars, set([]))
+
     def test_variables_writes_declaration_multiple(self) -> None:
         code = b'''
             int a = c, b = d;
@@ -63,11 +72,12 @@ class TestParseVariables(TestCase):
             a++;
             b+=1;
             --c;
+            d |= 2;
         '''
         ast = self.parse(code)
         read_vars, write_vars = read_write_variables(ast, code)
-        self.assertEqual(read_vars, set(['a', 'b', 'c']))
-        self.assertEqual(write_vars, set(['a', 'b', 'c']))
+        self.assertEqual(read_vars, set(['a', 'b', 'c', 'd']))
+        self.assertEqual(write_vars, set(['a', 'b', 'c', 'd']))
 
     def test_variables_writes_declaration_for(self) -> None:
         code = b'''
@@ -216,6 +226,16 @@ class TestParseVariables(TestCase):
         read_vars, write_vars = read_write_variables(ast, code)
         self.assertEqual(read_vars, set(['a']))
         self.assertEqual(write_vars, set())
+
+    def test_variables_enhanced_for(self) -> None:
+        code = b'''
+            for (T v: list) {
+            }
+        '''
+        ast = self.parse(code)
+        read_vars, write_vars = read_write_variables(ast, code)
+        self.assertEqual(read_vars, set(['list']))
+        self.assertEqual(write_vars, set(['v']))
 
     def test_variables_anonymous_class(self) -> None:
         code = b'''

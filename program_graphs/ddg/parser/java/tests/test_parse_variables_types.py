@@ -93,6 +93,16 @@ class TestParseVariableTypes(TestCase):
         var_types = [get_type(var_identifier, code) for var_identifier in write_identifiers]
         self.assertEqual(var_types, ['T1,T2'])
 
+    def test_typed_avr_enhanced_for_with_type(self) -> None:
+        code = b'''
+            for (T v: list) {
+            }
+        '''
+        ast = self.parse(code)
+        write_identifiers, _ = write_read_identifiers(ast, code)
+        var_types = [get_type(var_identifier, code) for var_identifier in write_identifiers]
+        self.assertEqual(var_types, ['T'])
+
 
 if __name__ == '__main__':
     main()

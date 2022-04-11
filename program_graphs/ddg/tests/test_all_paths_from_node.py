@@ -1,5 +1,5 @@
 from unittest import TestCase, main
-from program_graphs import FCFG
+from program_graphs.cfg.fcfg import FCFG
 from program_graphs.cfg.parser.java import parse
 from program_graphs.cfg.fcfg import mk_fcfg_from_cfg
 from program_graphs.ddg.parser.java.utils import all_paths_from

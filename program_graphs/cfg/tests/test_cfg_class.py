@@ -1,6 +1,6 @@
 
 from unittest import TestCase, main
-from program_graphs import CFG
+from program_graphs.cfg.cfg import CFG
 from program_graphs.cfg.types import JumpKind
 
 

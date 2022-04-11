@@ -1,11 +1,10 @@
 # program-graphs
 
-An experimental python library to build graphs for programs written in different programming languages. The library is based on a great [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) library.
+An experimental python library to build graphs for programs written in different programming languages. The library is based on a great [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) library and able to provide the following relations in a program:
 
- - Control Flow Graph
- - Control Dependency Graph
- - Data Dependency Graph
- - Program Dependency Graph
+ - Control Flow
+ - Data Dependency 
+ - Syntax Dependency
 
 
 # Simple Example
@@ -20,7 +19,7 @@ From python:
 
 ```python
 
-from program_graphs.cfg import CFG, parse_java
+from program_graphs.adg import parse_java
 
 java_code = '''
     if (x  > 0) {
@@ -28,16 +27,27 @@ java_code = '''
     }
 '''
 
-cfg = parse_java(java_code)
-print(cfg)
+adg = parse_java(java_code)
+print(adg)
 ```
-Expected output is a list of graph edges:
+Expected output are nodes and relations between them:
 ```
-From              To
-------------  --  ---------
-if-condition:0  ->  statement:1
-statement:1     ->  exit:2
-if-condition:0  ->  exit:2
+From                        To                      Dependencies
+----------------------  --  ----------------------  -------------------------------
+program:1               ->  if:2                    syntax,control-flow
+program:1               ->  block-exit:10           syntax
+if:2                    ->  if_condition:3          syntax,control-flow
+if:2                    ->  block:4                 syntax
+if:2                    ->  if_exit:9               syntax
+if_condition:3          ->  block:4                 control-flow
+if_condition:3          ->  if_exit:9               control-flow
+block:4                 ->  {:5                     syntax
+block:4                 ->  }:7                     syntax
+block:4                 ->  expression_statement:6  syntax,control-flow
+block:4                 ->  block-exit:8            syntax
+expression_statement:6  ->  block-exit:8            control-flow
+block-exit:8            ->  if_exit:9               control-flow
+if_exit:9               ->  block-exit:10           control-flow
 
 ```
 
@@ -53,5 +63,5 @@ $ pip install -r requirements/default.txt
 # Limitations
 
  - For now, only a Java language is supported;
- - For now, only `CFG` is supported;
+ - For now, `CFG`, `CDG`, `DDG`, and `AST` relations are accounted;
  - It's not possible to build graphs for a project or class. Only method level is supported

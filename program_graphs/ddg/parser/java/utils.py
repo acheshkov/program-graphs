@@ -1,5 +1,5 @@
 from collections import defaultdict
-from program_graphs import FCFG
+from program_graphs.cfg.fcfg import FCFG
 from program_graphs.cfg.parser.java.utils import extract_code
 from typing import Callable, Tuple, List, Mapping, Set, Iterator, Any, Optional, Iterable, Dict
 from program_graphs.types import NodeID
@@ -16,17 +16,6 @@ DataDependency = Tuple[NodeID, NodeID, Set[Variable]]
 WriteIdentifier = Any
 ReadIdentifier = Any
 Identifier = Any
-
-
-# def filter_nodes(node: Statement, node_types: List[str]) -> List[Statement]:
-#     if node is None:
-#         return []
-#     nodes = list(chain.from_iterable(
-#         [filter_nodes(ch, node_types) for ch in node.children]
-#     ))
-#     if node.type in node_types:
-#         return [node] + nodes
-#     return nodes
 
 
 def identifiers_df(node: Statement, depth: int = 0) -> List[Statement]:
@@ -58,7 +47,7 @@ def get_type(node: Identifier, source_code: bytes) -> Optional[VarType]:
     if (node.parent.type in ['formal_parameter']):
         return find_types_and_aggregate(node.parent.child_by_field_name('type'), source_code)
 
-    if (node.parent.type in ['catch_formal_parameter']):
+    if (node.parent.type in ['catch_formal_parameter', 'enhanced_for_statement']):
         return find_types_and_aggregate(node.parent, source_code)
 
     if (node.parent.parent.type == 'local_variable_declaration'):
@@ -158,11 +147,14 @@ def write_read_identifiers(  # noqa
         arguments = identifiers_df(node.child_by_field_name('arguments'))
         return [], arguments
 
+    if node.type == 'enhanced_for_statement':
+        return identifiers_df(node.child_by_field_name('name')), identifiers_df(node.child_by_field_name('value'))
+
     identifier_exceptions = [
         'labeled_statement', 'break_statement', 'continue_statement',
         'method_declaration', 'class_declaration'
     ]
-    if node.type == 'identifier' and node.parent.type not in identifier_exceptions:
+    if node.type == 'identifier' and node.parent.type not in identifier_exceptions and node.start_byte != node.end_byte:
         return [], [node]
 
     return _write_read_indetifiers_of_children(node, source_code)

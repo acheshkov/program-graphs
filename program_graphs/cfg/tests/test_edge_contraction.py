@@ -1,6 +1,6 @@
 
 from unittest import TestCase, main
-from program_graphs import CFG
+from program_graphs.cfg.cfg import CFG
 from program_graphs.cfg.edge_contraction import is_possible_to_contract, edge_contraction_all
 import networkx as nx  # type: ignore
 

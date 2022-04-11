@@ -1,5 +1,5 @@
 import networkx as nx  # type: ignore
-from program_graphs import CFG
+from program_graphs.cfg.cfg import CFG
 from program_graphs.ddg.parser.java.utils import get_data_dependencies, read_write_variables
 from program_graphs.cfg.fcfg import mk_fcfg_from_cfg
 

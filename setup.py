@@ -14,7 +14,7 @@ class BuildCommand(build_py):
 
 def parse_requirements_file(filename):
     with open(filename) as fid:
-        requires = [l.strip() for l in fid.readlines() if not l.startswith("#")]
+        requires = [line.strip() for line in fid.readlines() if not line.startswith("#")]
 
     return requires
 
@@ -26,6 +26,9 @@ extras_require = {}
 packages = [
     'program_graphs',
     'program_graphs.utils',
+    'program_graphs.adg',
+    'program_graphs.adg.parser',
+    'program_graphs.adg.parser.java',
     'program_graphs.cfg',
     'program_graphs.cfg.parser',
     'program_graphs.cfg.parser.java',
