@@ -454,6 +454,7 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
         adg.add_edge(parent_adg_node, try_catch_node, syntax=True)
 
     if mb_final_entry is None and mb_catches_exit is None:
+        adg.add_edge(try_catch_node, try_exit, cflow=True)
         return try_catch_node, try_exit  # type: ignore
 
     if mb_catches_entry is not None and mb_final_entry is None:

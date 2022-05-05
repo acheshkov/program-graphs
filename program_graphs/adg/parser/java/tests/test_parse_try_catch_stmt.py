@@ -287,6 +287,7 @@ class TestParseTryCatch(TestCase):
             adg.to_cfg(),
             nx.DiGraph([
                 ('try', 'T1 a = mk1();'),
+                ('try', 'try-block-exit'),
                 ('T1 a = mk1();', 'T2 b = mk2()'),
                 ('T2 b = mk2()', 'try-block-entry'),
                 ('try-block-entry', 'stmt'),
