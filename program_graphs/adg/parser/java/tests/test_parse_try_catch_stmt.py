@@ -34,11 +34,11 @@ class TestParseTryCatch(TestCase):
         self.assertTrue(nx.algorithms.is_isomorphic(
             adg.to_cfg(),
             nx.DiGraph([
-                ('try', 'try-block-empty'),
-                ('try-block-empty', 'catch-body-empty'),
-                ('try-block-empty', 'catch-block'),
+                ('try', 'try-block-entry-exit'),
+                ('try-block-entry-exit', 'try-block-entry-exit'),
+                ('try-block-entry-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
-                ('formal-parameters', 'catch-body-empty')
+                ('formal-parameters', 'catch-body-entry-exit')
             ])
         ))
 
@@ -60,13 +60,14 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
-                ('try-block-entry', 'catch-block'),
+                ('try-block-entry', 'try-block-exit'),
                 ('stmt_1', 'try-block-exit'),
-                ('try-block-exit', 'catch-body-exit'),
+                ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-exit'),
                 ('formal-parameters', 'catch-body-entry'),
                 ('catch-body-entry', 'stmt_2'),
+                # ('catch-body-entry', 'catch-body-exit'),
                 ('stmt_2', 'catch-body-exit')
             ])
         ))
@@ -90,11 +91,10 @@ class TestParseTryCatch(TestCase):
             adg.to_cfg(),
             nx.DiGraph([
                 ('try', 'try-block-entry'),
+                ('try-block-entry', 'try-block-exit'),
                 ('try-block-entry', 'stmt_1'),
-                ('try-block-exit', 'finally-block-entry'),
-                ('try-block-entry', 'catch-block'),
+                ('try-block-exit', 'catch-block'),
                 ('stmt_1', 'try-block-exit'),
-                # ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-entry'),
                 ('formal-parameters', 'catch-body-exit'),
@@ -102,6 +102,7 @@ class TestParseTryCatch(TestCase):
                 ('stmt_2', 'catch-body-exit'),
                 ('catch-body-exit', 'finally-block-entry'),
                 ('finally-block-entry', 'stmt3'),
+                ('finally-block-entry', 'finally-block-exit'),
                 ('stmt3', 'finally-block-exit')
             ])
         ))
@@ -186,10 +187,10 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
-                ('try-block-exit', 'finally-block-entry'),
-                ('try-block-entry', 'catch-block'),
+                ('try-block-entry', 'try-block-exit'),
+                # ('try-block-exit', 'finally-block-entry'),
                 ('stmt_1', 'try-block-exit'),
-                # ('try-block-exit', 'catch-block'),
+                ('try-block-exit', 'catch-block'),
                 ('catch-block', 'formal-parameters'),
                 ('formal-parameters', 'catch-body-entry'),
                 ('formal-parameters', 'catch-body-exit'),
@@ -203,6 +204,7 @@ class TestParseTryCatch(TestCase):
                 ('stmt_3', 'catch-body-exit_2'),
                 ('catch-body-exit_2', 'finally-block-entry'),
                 ('finally-block-entry', 'stmt4'),
+                ('finally-block-entry', 'finally-block-exit'),
                 ('stmt4', 'finally-block-exit')
             ])
         ))
@@ -225,9 +227,11 @@ class TestParseTryCatch(TestCase):
             nx.DiGraph([
                 ('try', 'try-block-entry'),
                 ('try-block-entry', 'stmt_1'),
+                ('try-block-entry', 'try-block-exit'),
                 ('stmt_1', 'try-block-exit'),
                 ('try-block-exit', 'finally-block-entry'),
                 ('finally-block-entry', 'stmt_2'),
+                ('finally-block-entry', 'finally-block-exit'),
                 ('stmt_2', 'finally-block-exit')
             ])
         ))
@@ -287,7 +291,7 @@ class TestParseTryCatch(TestCase):
             adg.to_cfg(),
             nx.DiGraph([
                 ('try', 'T1 a = mk1();'),
-                ('try', 'try-block-exit'),
+                ('T1 a = mk1();', 'try-block-exit'),
                 ('T1 a = mk1();', 'T2 b = mk2()'),
                 ('T2 b = mk2()', 'try-block-entry'),
                 ('try-block-entry', 'stmt'),

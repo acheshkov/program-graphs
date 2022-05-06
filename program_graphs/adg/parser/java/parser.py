@@ -412,17 +412,19 @@ def mk_adg_finally_block(node: ASTNode, adg: ADG, syntax_parent: NodeID, source:
     if final_node is None:
         return None, None
     final_body_node = [ch for ch in final_node.children if ch.type == 'block'][0]
-    return mk_adg(final_body_node, adg, syntax_parent, source)
+    entry, exit = mk_adg(final_body_node, adg, syntax_parent, source)
+    adg.add_edge(entry, exit, cflow=True)
+    return entry, exit
 
 def mk_adg_single_catch_block(node: ASTNode, adg: ADG, source: bytes = None) -> Tuple[EntryNode, ExitNode]:
-    case_node_entry = adg.add_ast_node(node, name='catch-block')
+    catch_node_entry = adg.add_ast_node(node, name='catch-block')
     entry, exit = combine_cf_linear([
         mk_adg(filter_nodes(node, ['catch_formal_parameter'])[0], adg, source=source),
         mk_adg(node.child_by_field_name('body'), adg, source=source)
-    ], adg, case_node_entry)
-    adg.add_edge(case_node_entry, entry, cflow=True)
+    ], adg, catch_node_entry)
+    adg.add_edge(catch_node_entry, entry, cflow=True)
     adg.add_edge(entry, exit, cflow=True)
-    return case_node_entry, exit
+    return catch_node_entry, exit
 
 def mk_adg_many_catch_blocks(node: ASTNode, adg: ADG, syntax_parent: NodeID, source: bytes = None) -> Tuple[Optional[EntryNode], Optional[ExitNode]]:
     catch_nodes = [ch for ch in node.children if ch.type == 'catch_clause']
@@ -454,24 +456,27 @@ def mk_adg_try_catch(node: ASTNode, adg: ADG, parent_adg_node: Optional[NodeID] 
         adg.add_edge(parent_adg_node, try_catch_node, syntax=True)
 
     if mb_final_entry is None and mb_catches_exit is None:
-        adg.add_edge(try_catch_node, try_exit, cflow=True)
+        adg.add_edge(try_entry, try_exit, cflow=True)
         return try_catch_node, try_exit  # type: ignore
 
     if mb_catches_entry is not None and mb_final_entry is None:
-        # adg.add_edge(parent_adg_node, mb_catches_entry, syntax=True)
-        adg.add_edge(try_entry, mb_catches_entry, cflow=True)
-        adg.add_edge(try_exit, mb_catches_exit, cflow=True)
+        adg.add_edges_from([
+            (try_exit, mb_catches_entry),
+            (try_entry, try_exit),
+        ], cflow=True)
         return try_catch_node, mb_catches_exit  # type: ignore
 
     if mb_catches_entry is None and mb_final_entry is not None:
-        adg.add_edge(try_exit, mb_final_entry, cflow=True)
+        adg.add_edges_from([
+            (try_exit, mb_final_entry),
+            (try_entry, try_exit),
+        ], cflow=True)
         return try_catch_node, mb_final_exit  # type: ignore
 
     adg.add_edges_from([
-        (try_entry, mb_catches_entry),
-        # (try_exit, mb_catches_entry),
-        (try_exit, mb_final_entry),
-        (mb_catches_exit, mb_final_entry)
+        (try_exit, mb_catches_entry),
+        (mb_catches_exit, mb_final_entry),
+        (try_entry, try_exit),
     ], cflow=True)
 
     return try_catch_node, mb_final_exit  # type: ignore
